@@ -221,7 +221,7 @@ public class LexAn implements AutoCloseable {
 			nextChar();
 			while(buffChar != '"'){
 				if(buffChar == '\n' || buffChar == -1){
-					throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "String not closed");
+					throw new Report.Error(new Report.Location(startLine, startColumn), "String not closed");
 				}
 				if(buffChar < 32 || buffChar > 126){
 					throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character in string: " + (char)buffChar);
@@ -301,7 +301,7 @@ public class LexAn implements AutoCloseable {
 				nextChar();
 			}
 			if ((char) buffChar != '\''){
-				throw new Report.Error(new Report.Location(startLine, startColumn), "Char not closed or more than one character");
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Char not closed or more than one character");
 			}
 			buffToken = new Token(new Report.Location(startLine, startColumn), Token.Symbol.CHARCONST, buffer.toString());
 			nextChar();
@@ -314,7 +314,7 @@ public class LexAn implements AutoCloseable {
 			}
 			String start = buffer.toString();
 			if (start.startsWith("0") && start.length() > 1) {
-				throw new Report.Error(new Report.Location(startLine, startColumn), "Integer cannot start with 0");
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Integer cannot start with 0");
 			}
 			try{
 				int value = Integer.parseInt(start);
