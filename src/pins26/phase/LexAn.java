@@ -220,7 +220,7 @@ public class LexAn implements AutoCloseable {
 		if(buffChar == '"'){
 			nextChar();
 			while(buffChar != '"'){
-				if(buffChar == '\n' || buffChar == -1){
+				if(buffChar == '\n' || buffChar == '\r' || buffChar == -1){
 					throw new Report.Error(new Report.Location(startLine, startColumn), "String not closed");
 				}
 				if(buffChar < 32 || buffChar > 126){
@@ -265,7 +265,7 @@ public class LexAn implements AutoCloseable {
 			if ((char) buffChar == '\''){
 				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Empty char not allowed");
 			}
-			if(buffChar == '\n' || buffChar == -1){
+			if(buffChar == '\n' || buffChar == '\r' || buffChar == -1){
 				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Char not closed");
 			}
 			if(buffChar < 32 || buffChar > 126){
