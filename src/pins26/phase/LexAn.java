@@ -35,14 +35,15 @@ public class LexAn implements AutoCloseable {
 		KEYWORDS.put("!=",Token.Symbol.NEQ);
 		KEYWORDS.put("<", Token.Symbol.GTH);
 		KEYWORDS.put(">", Token.Symbol.LTH);
-		KEYWORDS.put("<=", Token.Symbol.GEQ);
-		KEYWORDS.put(">=", Token.Symbol.LEQ);
+		KEYWORDS.put("<=", Token.Symbol.LEQ);
+		KEYWORDS.put(">=", Token.Symbol.GEQ);
 		KEYWORDS.put("+",Token.Symbol.ADD);
 		KEYWORDS.put("-",Token.Symbol.SUB);
 		KEYWORDS.put("*",Token.Symbol.MUL);
 		KEYWORDS.put("/",Token.Symbol.DIV);
 		KEYWORDS.put("%",Token.Symbol.MOD);
 		KEYWORDS.put("^",Token.Symbol.PTR);
+		KEYWORDS.put(";",Token.Symbol.SEMIC);
 		KEYWORDS.put("(",Token.Symbol.LPAREN);
 		KEYWORDS.put(")",Token.Symbol.RPAREN);
 	}
@@ -120,7 +121,7 @@ public class LexAn implements AutoCloseable {
 				return;
 			case '\t': // Prejsnji znak je tabulator, ta znak je morda potisnjen v desno.
 				buffChar = srcFile.read();
-				while (buffCharColumn % 4 != 0)
+				while (buffCharColumn % 8 != 0)
 					buffCharColumn += 1;
 				buffCharColumn += 1;
 				return;
@@ -154,58 +155,176 @@ public class LexAn implements AutoCloseable {
 			buffToken = new Token(new Report.Location(0, 0), Token.Symbol.EOF, "");
 			return;
 		}
-		Report.Location location = new Report.Location(buffCharLine, buffCharColumn);
-		StringBuilder buffer = new StringBuilder();
-		buffer.append((char)buffChar);
-		if(Character.toString(buffChar).matches("[A-Za-z_]")){
+		int startLine = buffCharLine;
+		int startColumn = buffCharColumn;
+		if((char)buffChar == '/'){
 			nextChar();
+			if ((char) buffChar == '/'){
+				while (buffChar != -1 && (char)buffChar != '\n') {
+					nextChar();
+				}
+				nextToken();
+				return;
+			} else {
+				buffToken = new Token(new Report.Location(startLine, startColumn), Token.Symbol.DIV, "/");
+				nextChar();
+				return;
+			}
+		}
+		StringBuilder buffer = new StringBuilder();
+		if(Character.toString(buffChar).matches("[A-Za-z_]")){
+			//nextChar();
 			while (buffChar != -1 && Character.toString(buffChar).matches("[A-Za-z0-9_]")) {
 				buffer.append((char)buffChar);
 				nextChar();
 			}
-			if (!Character.isWhitespace(buffChar) && buffChar != -1 && !Character.toString(buffChar).matches("[-+*/%^(),=<>!&|]")) {
+			if (!Character.isWhitespace(buffChar) && buffChar != -1 && !Character.toString(buffChar).matches("[-+*/%^(),=<>!&|;]")) {
 				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character in identifier: " + (char)buffChar);
 			}
 			String type = buffer.toString();
 			Token.Symbol symbol = KEYWORDS.get(type);
-            buffToken = new Token(new Report.Location(buffCharLine, buffCharColumn), Objects.requireNonNullElse(symbol, Token.Symbol.IDENTIFIER), type);
+            buffToken = new Token(new Report.Location(startLine, startColumn), Objects.requireNonNullElse(symbol, Token.Symbol.IDENTIFIER), type);
 			return;
 		}
-		if(Character.toString(buffChar).matches("[-+*/%^(),]")) {
+		if(Character.toString(buffChar).matches("[-+*%^(),;]")) {
 			Token.Symbol symbol = KEYWORDS.get(Character.toString(buffChar));
-			buffToken = new Token(new Report.Location(buffCharLine, buffCharColumn), symbol, Character.toString(buffChar));
+			buffToken = new Token(new Report.Location(startLine, startColumn), symbol, Character.toString(buffChar));
 			nextChar();
 			return;
 		}
 
 		if (Character.toString(buffChar).matches("[&|]")){
 			char current = (char)buffChar;
-			Token.Symbol symbol = KEYWORDS.get(Character.toString(current));
 			nextChar();
 			if(buffChar == current) {
-				buffer.append(current);
-				buffToken = new Token(new Report.Location(buffCharLine, buffCharColumn), symbol, buffer.toString());
+				String operator = "" + current + current;
+				buffToken = new Token(new Report.Location(startLine, startColumn), KEYWORDS.get(operator), operator);
 			} else{
-				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character in operator: " + (char)buffChar + "for operation " + symbol);
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character in operator: " + (char)buffChar + "for operation " + current);
 			}
 			nextChar();
 			return;
 		}
 		if (Character.toString(buffChar).matches("[!=<>]")) {
 			char current = (char) buffChar;
-			Token.Symbol currentSymbol = KEYWORDS.get(Character.toString(current));
 			nextChar();
 			if(buffChar == '='){
-				buffer.append((char)buffChar);
-				Token.Symbol symbol = KEYWORDS.get(buffer.toString());
-				buffToken = new Token(new Report.Location(buffCharLine, buffCharColumn), symbol, buffer.toString());
+				String op = "" + current + '=';
+				buffToken = new Token(new Report.Location(startLine, startColumn), KEYWORDS.get(op), op);
 				nextChar();
 			} else{
-				buffToken = new Token(new Report.Location(buffCharLine, buffCharColumn), currentSymbol, Character.toString(current));
+				buffToken = new Token(new Report.Location(startLine, startColumn), KEYWORDS.get(Character.toString(current)), Character.toString(current));
 			}
 			return;
 		}
-
+		if(buffChar == '"'){
+			nextChar();
+			while(buffChar != '"'){
+				if(buffChar == '\n' || buffChar == -1){
+					throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "String not closed");
+				}
+				if(buffChar < 32 || buffChar > 126){
+					throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character in string: " + (char)buffChar);
+				}
+				if (buffChar == '\\') {
+					nextChar();
+					if ((char) buffChar == 'n'){
+						buffer.append('\n');
+						nextChar();
+					} else if ((char) buffChar == '"'){
+						buffer.append('"');
+						nextChar();
+					} else if ((char) buffChar == '\\'){
+						buffer.append('\\');
+						nextChar();
+					} else if(String.valueOf((char)buffChar).matches("[0-9a-fA-F]")){
+						char first = (char) buffChar;
+						nextChar();
+						if(String.valueOf((char)buffChar).matches("[0-9a-fA-F]")){
+							char second = (char) buffChar;
+							int hex = Integer.parseInt("" + first + second, 16);
+							buffer.append((char)hex);
+							nextChar();
+						} else{
+							throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Invalid hex : " + (char)buffChar);
+						}
+					} else {
+						throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Invalid hex : " + (char)buffChar);
+					}
+				} else {
+					buffer.append((char)buffChar);
+					nextChar();
+				}
+			}
+			buffToken = new Token(new Report.Location(startLine, startColumn), Token.Symbol.STRINGCONST, buffer.toString());
+			nextChar();
+			return;
+		}
+		if ((char) buffChar == '\''){
+			nextChar();
+			if ((char) buffChar == '\''){
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Empty char not allowed");
+			}
+			if(buffChar == '\n' || buffChar == -1){
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Char not closed");
+			}
+			if(buffChar < 32 || buffChar > 126){
+				throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Forbidden character: " + (char)buffChar);
+			}
+			if (buffChar == '\\') {
+				nextChar();
+				if ((char) buffChar == 'n'){
+					buffer.append('\n');
+					nextChar();
+				} else if ((char) buffChar == '\''){
+					buffer.append('\'');
+					nextChar();
+				} else if ((char) buffChar == '\\'){
+					buffer.append('\\');
+					nextChar();
+				} else if(String.valueOf((char)buffChar).matches("[0-9a-fA-F]")){
+					char first = (char) buffChar;
+					nextChar();
+					if(String.valueOf((char)buffChar).matches("[0-9a-fA-F]")){
+						char second = (char) buffChar;
+						int hex = Integer.parseInt("" + first + second, 16);
+						buffer.append((char)hex);
+						nextChar();
+					} else {
+						throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Invalid hex : " + (char)buffChar);
+					}
+				} else {
+					throw new Report.Error(new Report.Location(buffCharLine, buffCharColumn), "Invalid hex : " + (char)buffChar);
+				}
+			} else {
+				buffer.append((char)buffChar);
+				nextChar();
+			}
+			if ((char) buffChar != '\''){
+				throw new Report.Error(new Report.Location(startLine, startColumn), "Char not closed or more than one character");
+			}
+			buffToken = new Token(new Report.Location(startLine, startColumn), Token.Symbol.CHARCONST, buffer.toString());
+			nextChar();
+			return;
+		}
+		if(Character.isDigit(buffChar)){
+			while(Character.isDigit(buffChar)){
+				buffer.append((char)buffChar);
+				nextChar();
+			}
+			String start = buffer.toString();
+			if (start.startsWith("0") && start.length() > 1) {
+				throw new Report.Error(new Report.Location(startLine, startColumn), "Integer cannot start with 0");
+			}
+			try{
+				int value = Integer.parseInt(start);
+				buffToken = new Token(new Report.Location(startLine,startColumn), Token.Symbol.INTCONST, start);
+			} catch (NumberFormatException e) {
+				throw new Report.Error(new Report.Location(startLine, startColumn), "Integer overflow");
+			}
+			return;
+		}
+		throw new Report.Error(new Report.Location(startLine, startColumn), "Invalid token " + (char)buffChar);
 	}
 
 	/**
