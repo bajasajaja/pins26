@@ -3,8 +3,11 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin
-workingtests.txt
-failteses.txt
+workingtestsLexan.txt
+WorkingtestsSyntax.txt
+failtestsLexan.txt
+failtestsSynatx.txt
+pins26-syn.txt
 PINS26.iml
 .idea
 ### Eclipse ###
