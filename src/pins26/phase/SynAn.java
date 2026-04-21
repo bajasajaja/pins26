@@ -12,6 +12,10 @@ public class SynAn implements AutoCloseable {
 	/** Leksikalni analizator. */
 	private final LexAn lexAn;
 
+	private HashMap<AST.Node, Report.Locatable> attrLoc;
+
+	private Token lastToken;
+
 	/**
 	 * Ustvari nov sintaksni analizator.
 	 * 
@@ -26,6 +30,13 @@ public class SynAn implements AutoCloseable {
 		lexAn.close();
 	}
 
+	private <T extends AST.Node> T loc(T node, Token startToken, Token endToken) {
+		if (startToken != null && endToken != null) {
+			attrLoc.put(node, new Report.Location(startToken, endToken));
+		}
+		return node;
+	}
+
 	/**
 	 * Prevzame leksikalni analizator od leksikalnega analizatorja in preveri, ali
 	 * je prave vrste.
@@ -33,453 +44,404 @@ public class SynAn implements AutoCloseable {
 	 * @param symbol Pricakovana vrsta leksikalnega simbola.
 	 * @return Prevzeti leksikalni simbol.
 	 */
+
+
 	private Token check(Token.Symbol symbol) {
 		final Token token = lexAn.takeToken();
 		if (token.symbol() != symbol)
 			throw new Report.Error(token, "Unexpected symbol '" + token.lexeme() + "'.");
+		lastToken = token;
 		return token;
 	}
 
 	/**
 	 * Opravi sintaksno analizo.
 	 */
-	public void parse() {
-				parseProgram();
+	public AST.Node parse(HashMap<AST.Node, Report.Locatable> attrLoc) {
+				this.attrLoc = attrLoc;
+				AST.Node ast = parseProgram();
                 if (lexAn.peekToken().symbol() != Token.Symbol.EOF) Report.warning(lexAn.peekToken(), "Unexpected text '" + lexAn.peekToken().lexeme() + "...' at the end of the program.");
+				return ast;
 	}
-	private void parseProgram() {
-		Token.Symbol symbol = lexAn.peekToken().symbol();
-		if (symbol == Token.Symbol.FUN || symbol == Token.Symbol.VAR){
-			System.out.println("program -> definitions");
-			parseDefinitions();
-		} else {
-			System.out.println("program -> empty");
+	private AST.Nodes<AST.MainDef> parseProgram() {
+		Token start = lexAn.peekToken();
+		List<AST.MainDef> defs = new ArrayList<>();
+
+		while (lexAn.peekToken().symbol() == Token.Symbol.FUN || lexAn.peekToken().symbol() == Token.Symbol.VAR) {
+			defs.add(parseDefinition());
 		}
+
+		AST.Nodes<AST.MainDef> nodes = new AST.Nodes<>(defs);
+		return loc(nodes, start, lastToken != null ? lastToken : start);
 	}
 
-	private void parseDefinitions() {
-		System.out.println("definitions -> definition definitions2");
-		parseDefinition();
-		parseDefinitions2();
-	}
+	//definition -> fun IDENTIFIER (parameters) (= statements)? OR var IDENTIFIER = initializers
 
-	private void parseDefinition() {
-		Token.Symbol symbol = lexAn.peekToken().symbol();
-		if (symbol == Token.Symbol.FUN) {
-			System.out.println("definition -> fun IDENTIFIER ( parameters ) definition_tail");
+	private AST.MainDef parseDefinition() {
+		Token start = lexAn.peekToken();
+		if (start.symbol() == Token.Symbol.FUN) {
 			check(Token.Symbol.FUN);
-			check(Token.Symbol.IDENTIFIER);
+			Token id = check(Token.Symbol.IDENTIFIER);
 			check(Token.Symbol.LPAREN);
-			parseParameters();
+			List<AST.ParDef> pars = parseParameters();
 			check(Token.Symbol.RPAREN);
-			parseDefinitionTail();
-		} else if (symbol == Token.Symbol.VAR) {
-			System.out.println("definition -> var IDENTIFIER = initializers");
+			List<AST.Stmt> body = parseDefinitionTail();
+
+			AST.FunDef funDef = new AST.FunDef(id.lexeme(), pars, body);
+			return loc(funDef, start, lastToken);
+		} else if (start.symbol() == Token.Symbol.VAR) {
 			check(Token.Symbol.VAR);
-			check(Token.Symbol.IDENTIFIER);
+			Token id = check(Token.Symbol.IDENTIFIER);
 			check(Token.Symbol.ASSIGN);
-			parseInitializers();
+			List<AST.Init> inits = parseInitializers();
+
+			AST.VarDef varDef = new AST.VarDef(id.lexeme(), inits);
+			return loc(varDef, start, lastToken);
 		} else {
 			throw new Report.Error(lexAn.peekToken(), "Expected 'fun' or 'var'.");
 		}
 	}
 
-	private void parseDefinitions2() {
-		Token.Symbol s = lexAn.peekToken().symbol();
-		if (s == Token.Symbol.FUN || s == Token.Symbol.VAR) {
-			System.out.println("definitions2 -> definition definitions2");
-			parseDefinition();
-			parseDefinitions2();
-		} else {
-			System.out.println("definitions2 -> empty");
-		}
-	}
+	//parameters -> (IDENTIFIER (, IDENTIFIER)*)?
 
-	private void parseParameters() {
+	private List<AST.ParDef> parseParameters() {
+		List<AST.ParDef> pars = new ArrayList<>();
 		if (lexAn.peekToken().symbol() == Token.Symbol.IDENTIFIER) {
-			System.out.println("parameters -> param_list");
-			parseParamList();
-		} else {
-			System.out.println("parameters -> empty");
+			Token id = check(Token.Symbol.IDENTIFIER);
+			pars.add(loc(new AST.ParDef(id.lexeme()), id, id));
+
+			while (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
+				check(Token.Symbol.COMMA);
+				Token nextId = check(Token.Symbol.IDENTIFIER);
+				pars.add(loc(new AST.ParDef(nextId.lexeme()), nextId, nextId));
+			}
 		}
+		return pars;
 	}
 
-	private void parseDefinitionTail() {
+	private List<AST.Stmt> parseDefinitionTail() {
 		if (lexAn.peekToken().symbol() == Token.Symbol.ASSIGN) {
-			System.out.println("definition_tail -> = statements");
 			check(Token.Symbol.ASSIGN);
-			parseStatements();
-		} else {
-			System.out.println("definition_tail -> empty");
+			return parseStatements();
 		}
+		return new ArrayList<>(); //For empty functions
 	}
 
-	private void parseParamList() {
-		System.out.println("param_list -> IDENTIFIER param_list2");
-		check(Token.Symbol.IDENTIFIER);
-		parseParamList2();
+	//statements -> statement; (statement;)*
+
+	private List<AST.Stmt> parseStatements() {
+		List<AST.Stmt> stmts = new ArrayList<>();
+		do {
+			stmts.add(parseStatement());
+			check(Token.Symbol.SEMIC); //Semicolon is required after each statement,but not important to AST
+		} while (isStatementStart(lexAn.peekToken().symbol()));
+		return stmts;
 	}
 
-	private void parseParamList2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
-			System.out.println("param_list2 -> , IDENTIFIER param_list2");
-			check(Token.Symbol.COMMA);
-			check(Token.Symbol.IDENTIFIER);
-			parseParamList2();
-		} else {
-			System.out.println("param_list2 -> empty");
-		}
-	}
-
-	private void parseStatements() {
-		System.out.println("statements -> statement ; statements2");
-		parseStatement();
-		check(Token.Symbol.SEMIC);
-		parseStatements2();
-	}
-
-	private boolean isExpressionStart(Token.Symbol s) {
+	private boolean isStatementStart(Token.Symbol s) {
 		return switch (s) {
-			case NOT, ADD, SUB, PTR, INTCONST, CHARCONST, STRINGCONST, IDENTIFIER, LPAREN -> true;
+			case IF, WHILE, LET, NOT, ADD, SUB, PTR, INTCONST, CHARCONST, STRINGCONST, IDENTIFIER, LPAREN -> true;
 			default -> false;
 		};
 	}
 
-	private void parseStatements2() {
-		Token.Symbol s = lexAn.peekToken().symbol();
-		if (isExpressionStart(s) || s == Token.Symbol.IF || s == Token.Symbol.WHILE || s == Token.Symbol.LET) {
-			System.out.println("statements2 -> statement ; statements2");
-			parseStatement();
-			check(Token.Symbol.SEMIC);
-			parseStatements2();
-		} else {
-			System.out.println("statements2 -> empty");
-		}
-	}
-
-	private void parseStatement() {
-		Token.Symbol s = lexAn.peekToken().symbol();
-		switch (s) {
-			case IF:
-				System.out.println("statement -> if expression then statements if_tail");
+	private AST.Stmt parseStatement() {
+		Token start = lexAn.peekToken();
+		switch (start.symbol()) {
+			case IF: {
 				check(Token.Symbol.IF);
-				parseExpression();
+				AST.Expr cond = parseExpression();
 				check(Token.Symbol.THEN);
-				parseStatements();
-				parseIfTail();
-				break;
-			case WHILE:
-				System.out.println("statement -> while expression do statements end");
+				List<AST.Stmt> thenStmts = parseStatements();
+				List<AST.Stmt> elseStmts = new ArrayList<>();
+
+				if (lexAn.peekToken().symbol() == Token.Symbol.ELSE) {
+					check(Token.Symbol.ELSE);
+					elseStmts = parseStatements();
+				}
+				check(Token.Symbol.END);
+
+				AST.IfStmt ifStmt = new AST.IfStmt(cond, thenStmts, elseStmts);
+				return loc(ifStmt, start, lastToken);
+			}
+			case WHILE: {
 				check(Token.Symbol.WHILE);
-				parseExpression();
+				AST.Expr cond = parseExpression();
 				check(Token.Symbol.DO);
-				parseStatements();
+				List<AST.Stmt> body = parseStatements();
 				check(Token.Symbol.END);
-				break;
-			case LET:
-				System.out.println("statement -> let definitions_plus in statements end");
+
+				AST.WhileStmt whileStmt = new AST.WhileStmt(cond, body);
+				return loc(whileStmt, start, lastToken);
+			}
+			case LET: {
 				check(Token.Symbol.LET);
-				parseDefinitionsPlus();
+				List<AST.MainDef> defs = new ArrayList<>();
+				do {
+					defs.add(parseDefinition());
+				} while (lexAn.peekToken().symbol() == Token.Symbol.FUN || lexAn.peekToken().symbol() == Token.Symbol.VAR);
+
 				check(Token.Symbol.IN);
-				parseStatements();
+				List<AST.Stmt> stmts = parseStatements();
 				check(Token.Symbol.END);
-				break;
-			default:
-				System.out.println("statement -> expression statement_tail");
-				parseExpression();
-				parseStatementTail();
-				break;
+
+				AST.LetStmt letStmt = new AST.LetStmt(defs, stmts);
+				return loc(letStmt, start, lastToken);
+			}
+			default: {
+				AST.Expr expr = parseExpression();
+				if (lexAn.peekToken().symbol() == Token.Symbol.ASSIGN) {
+					check(Token.Symbol.ASSIGN);
+					AST.Expr src = parseExpression();
+
+					AST.AssignStmt assignStmt = new AST.AssignStmt(expr, src);
+					return loc(assignStmt, start, lastToken);
+				} else {
+					AST.ExprStmt exprStmt = new AST.ExprStmt(expr);
+					return loc(exprStmt, start, lastToken);
+				}
+			}
 		}
 	}
 
-	private void parseStatementTail() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.ASSIGN) {
-			System.out.println("statement_tail -> = expression");
-			check(Token.Symbol.ASSIGN);
-			parseExpression();
-		} else {
-			System.out.println("statement_tail -> empty");
-		}
-	}
+	//expression -> expression || expression
 
-	private void parseIfTail() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.ELSE) {
-			System.out.println("if_tail -> else statements end");
-			check(Token.Symbol.ELSE);
-			parseStatements();
-			check(Token.Symbol.END);
-		} else {
-			System.out.println("if_tail -> end");
-			check(Token.Symbol.END);
-		}
-	}
+	private AST.Expr parseExpression() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parseConjunction();
 
-	private void parseDefinitionsPlus() {
-		System.out.println("definitions_plus -> definition definitions_plus2");
-		parseDefinition();
-		parseDefinitionsPlus2();
-	}
-
-	private void parseDefinitionsPlus2() {
-		Token.Symbol s = lexAn.peekToken().symbol();
-		if (s == Token.Symbol.FUN || s == Token.Symbol.VAR) {
-			System.out.println("definitions_plus2 -> definition definitions_plus2");
-			parseDefinition();
-			parseDefinitionsPlus2();
-		} else {
-			System.out.println("definitions_plus2 -> empty");
-		}
-	}
-
-	private void parseExpression() {
-		System.out.println("expression -> conjunction expression2");
-		parseConjunction();
-		parseExpression2();
-	}
-
-	private void parseExpression2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.OR) {
-			System.out.println("expression2 -> || conjunction expression2");
+		while (lexAn.peekToken().symbol() == Token.Symbol.OR) {
 			check(Token.Symbol.OR);
-			parseConjunction();
-			parseExpression2();
-		} else {
-			System.out.println("expression2 -> empty");
+			AST.Expr right = parseConjunction();
+			expr = loc(new AST.BinExpr(AST.BinExpr.Oper.OR, expr, right), start, lastToken);
 		}
+		return expr;
 	}
 
-	private void parseConjunction() {
-		System.out.println("conjunction -> comparison conjunction2");
-		parseComparison();
-		parseConjunction2();
-	}
+	//expression -> expression && expression
 
-	private void parseConjunction2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.AND) {
-			System.out.println("conjunction2 -> && comparison conjunction2");
+	private AST.Expr parseConjunction() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parseComparison();
+
+		while (lexAn.peekToken().symbol() == Token.Symbol.AND) {
 			check(Token.Symbol.AND);
-			parseComparison();
-			parseConjunction2();
-		} else {
-			System.out.println("conjunction2 -> empty");
+			AST.Expr right = parseComparison();
+			expr = loc(new AST.BinExpr(AST.BinExpr.Oper.AND, expr, right), start, lastToken);
 		}
+		return expr;
 	}
 
-	private void parseComparison() {
-		System.out.println("comparison -> additive comparison_tail");
-		parseAdditive();
-		parseComparisonTail();
-	}
+	//expression -> expression (== | != | < | > | <= | >=) expression
 
-	private void parseComparisonTail() {
+	private AST.Expr parseComparison() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parseAdditive();
 		Token.Symbol s = lexAn.peekToken().symbol();
+
 		if (s == Token.Symbol.EQU || s == Token.Symbol.NEQ || s == Token.Symbol.LTH ||
 				s == Token.Symbol.GTH || s == Token.Symbol.LEQ || s == Token.Symbol.GEQ) {
-			System.out.println("comparison_tail -> " + s + " additive");
 			check(s);
-			parseAdditive();
-		} else {
-			System.out.println("comparison_tail -> empty");
+			AST.BinExpr.Oper op = switch (s) {
+				case EQU -> AST.BinExpr.Oper.EQU;
+				case NEQ -> AST.BinExpr.Oper.NEQ;
+				case LTH -> AST.BinExpr.Oper.LTH;
+				case GTH -> AST.BinExpr.Oper.GTH;
+				case LEQ -> AST.BinExpr.Oper.LEQ;
+				case GEQ -> AST.BinExpr.Oper.GEQ;
+				default -> throw new Report.InternalError();
+			};
+			AST.Expr right = parseAdditive();
+			expr = loc(new AST.BinExpr(op, expr, right), start, lastToken);
 		}
+		return expr;
 	}
 
-	private void parseAdditive() {
-		System.out.println("additive -> multiplicative additive2");
-		parseMultiplicative();
-		parseAdditive2();
-	}
+	//expression -> expression (+ | -) expression
 
-	private void parseAdditive2() {
+	private AST.Expr parseAdditive() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parseMultiplicative();
 		Token.Symbol s = lexAn.peekToken().symbol();
-		if (s == Token.Symbol.ADD) {
-			System.out.println("additive2 -> + multiplicative additive2");
-			check(Token.Symbol.ADD);
-			parseMultiplicative();
-			parseAdditive2();
-		} else if (s == Token.Symbol.SUB) {
-			System.out.println("additive2 -> - multiplicative additive2");
-			check(Token.Symbol.SUB);
-			parseMultiplicative();
-			parseAdditive2();
-		} else {
-			System.out.println("additive2 -> empty");
+
+		while (s == Token.Symbol.ADD || s == Token.Symbol.SUB) {
+			check(s);
+			AST.BinExpr.Oper op = (s == Token.Symbol.ADD) ? AST.BinExpr.Oper.ADD : AST.BinExpr.Oper.SUB;
+			AST.Expr right = parseMultiplicative();
+			expr = loc(new AST.BinExpr(op, expr, right), start, lastToken);
+			s = lexAn.peekToken().symbol();
 		}
+		return expr;
 	}
 
-	private void parseMultiplicative() {
-		System.out.println("multiplicative -> prefix multiplicative2");
-		parsePrefix();
-		parseMultiplicative2();
-	}
+	//expression -> expression (* | / | %) expression
 
-	private void parseMultiplicative2() {
+	private AST.Expr parseMultiplicative() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parsePrefix();
 		Token.Symbol s = lexAn.peekToken().symbol();
-		if (s == Token.Symbol.MUL) {
-			System.out.println("multiplicative2 -> * prefix multiplicative2");
-			check(Token.Symbol.MUL);
-			parsePrefix();
-			parseMultiplicative2();
-		} else if (s == Token.Symbol.DIV) {
-			System.out.println("multiplicative2 -> / prefix multiplicative2");
-			check(Token.Symbol.DIV);
-			parsePrefix();
-			parseMultiplicative2();
-		} else if (s == Token.Symbol.MOD) {
-			System.out.println("multiplicative2 -> % prefix multiplicative2");
-			check(Token.Symbol.MOD);
-			parsePrefix();
-			parseMultiplicative2();
-		} else {
-			System.out.println("multiplicative2 -> empty");
+
+		while (s == Token.Symbol.MUL || s == Token.Symbol.DIV || s == Token.Symbol.MOD) {
+			check(s);
+			AST.BinExpr.Oper op = switch (s) {
+				case MUL -> AST.BinExpr.Oper.MUL;
+				case DIV -> AST.BinExpr.Oper.DIV;
+				case MOD -> AST.BinExpr.Oper.MOD;
+				default -> throw new Report.InternalError();
+			};
+			AST.Expr right = parsePrefix();
+			expr = loc(new AST.BinExpr(op, expr, right), start, lastToken);
+			s = lexAn.peekToken().symbol();
 		}
+		return expr;
 	}
 
-	private void parsePrefix() {
-		Token.Symbol s = lexAn.peekToken().symbol();
+	//expression -> prefix-operator expression
+
+	private AST.Expr parsePrefix() {
+		Token start = lexAn.peekToken();
+		Token.Symbol s = start.symbol();
+
 		if (s == Token.Symbol.NOT || s == Token.Symbol.ADD || s == Token.Symbol.SUB || s == Token.Symbol.PTR) {
-			System.out.println("prefix -> " + s + " prefix");
 			check(s);
-			parsePrefix();
+			AST.UnExpr.Oper op = switch (s) {
+				case NOT -> AST.UnExpr.Oper.NOT;
+				case ADD -> AST.UnExpr.Oper.ADD;
+				case SUB -> AST.UnExpr.Oper.SUB;
+				case PTR -> AST.UnExpr.Oper.MEMADDR;
+				default -> throw new Report.InternalError();
+			};
+			AST.Expr expr = parsePrefix();
+			return loc(new AST.UnExpr(op, expr), start, lastToken);
 		} else {
-			System.out.println("prefix -> postfix");
-			parsePostfix();
+			return parsePostfix();
 		}
 	}
 
-	private void parsePostfix() {
-		System.out.println("postfix -> primary postfix2");
-		parsePrimary();
-		parsePostfix2();
-	}
+	//expression -> expression postfix-operator
 
-	private void parsePostfix2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.PTR) {
-			System.out.println("postfix2 -> ^ postfix2");
+	private AST.Expr parsePostfix() {
+		Token start = lexAn.peekToken();
+		AST.Expr expr = parsePrimary();
+
+		while (lexAn.peekToken().symbol() == Token.Symbol.PTR) {
 			check(Token.Symbol.PTR);
-			parsePostfix2();
-		} else {
-			System.out.println("postfix2 -> empty");
+			expr = loc(new AST.UnExpr(AST.UnExpr.Oper.VALUEAT, expr), start, lastToken);
 		}
+		return expr;
 	}
 
-	private void parsePrimary() {
-		Token.Symbol s = lexAn.peekToken().symbol();
+	//expression -> (expression) OR IDENTIFIER (arguments)? OR const
+
+	private AST.Expr parsePrimary() {
+		Token start = lexAn.peekToken();
+		Token.Symbol s = start.symbol();
+
 		switch (s) {
 			case INTCONST:
-				System.out.println("primary -> INTCONST");
-				check(Token.Symbol.INTCONST);
-				break;
 			case CHARCONST:
-				System.out.println("primary -> CHARCONST");
-				check(Token.Symbol.CHARCONST);
-				break;
 			case STRINGCONST:
-				System.out.println("primary -> STRINGCONST");
-				check(Token.Symbol.STRINGCONST);
-				break;
-			case IDENTIFIER:
-				System.out.println("primary -> IDENTIFIER primary_tail");
-				check(Token.Symbol.IDENTIFIER);
-				parsePrimaryTail();
-				break;
-			case LPAREN:
-				System.out.println("primary -> ( expression )");
+				return parseConst();
+			case IDENTIFIER: {
+				Token id = check(Token.Symbol.IDENTIFIER);
+				if (lexAn.peekToken().symbol() == Token.Symbol.LPAREN) {
+					check(Token.Symbol.LPAREN);
+					List<AST.Expr> args = new ArrayList<>();
+
+					if (isStatementStart(lexAn.peekToken().symbol())) {
+						args = parseArguments();
+					}
+					check(Token.Symbol.RPAREN);
+
+					AST.CallExpr callExpr = new AST.CallExpr(id.lexeme(), args);
+					return loc(callExpr, start, lastToken);
+				} else {
+					AST.VarExpr varExpr = new AST.VarExpr(id.lexeme());
+					return loc(varExpr, start, lastToken);
+				}
+			}
+			case LPAREN: {
 				check(Token.Symbol.LPAREN);
-				parseExpression();
+				AST.Expr expr = parseExpression();
 				check(Token.Symbol.RPAREN);
-				break;
+				return loc(expr, start, lastToken);
+			}
 			default:
 				throw new Report.Error(lexAn.peekToken(), "Expected constant, identifier or '('.");
 		}
 	}
 
-	private void parsePrimaryTail() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.LPAREN) {
-			System.out.println("primary_tail -> ( arguments )");
-			check(Token.Symbol.LPAREN);
-			parseArguments();
-			check(Token.Symbol.RPAREN);
-		} else {
-			System.out.println("primary_tail -> empty");
-		}
-	}
+	//arguments -> (expression (, expression)*)?
 
-	private void parseArguments() {
-		if (isExpressionStart(lexAn.peekToken().symbol())) {
-			System.out.println("arguments -> arg_list");
-			parseArgList();
-		} else {
-			System.out.println("arguments -> empty");
-		}
-	}
+	private List<AST.Expr> parseArguments() {
+		List<AST.Expr> args = new ArrayList<>();
+		args.add(parseExpression());
 
-	private void parseArgList() {
-		System.out.println("arg_list -> expression arg_list2");
-		parseExpression();
-		parseArgList2();
-	}
-
-	private void parseArgList2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
-			System.out.println("arg_list2 -> , expression arg_list2");
+		while (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
 			check(Token.Symbol.COMMA);
-			parseExpression();
-			parseArgList2();
-		} else {
-			System.out.println("arg_list2 -> empty");
+			args.add(parseExpression());
 		}
+		return args;
 	}
 
-	private void parseInitializers() {
-		System.out.println("initializers -> init_list");
-		parseInitList();
-	}
+	//initializers -> (initializer (, initializer)*)
 
-	private void parseInitList() {
-		System.out.println("init_list -> initializer init_list2");
-		parseInitializer();
-		parseInitList2();
-	}
+	private List<AST.Init> parseInitializers() {
+		List<AST.Init> inits = new ArrayList<>();
+		inits.add(parseInitializer());
 
-	private void parseInitList2() {
-		if (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
-			System.out.println("init_list2 -> , initializer init_list2");
+		while (lexAn.peekToken().symbol() == Token.Symbol.COMMA) {
 			check(Token.Symbol.COMMA);
-			parseInitializer();
-			parseInitList2();
-		} else {
-			System.out.println("init_list2 -> empty");
+			inits.add(parseInitializer());
 		}
+		return inits;
 	}
 
-	private void parseInitializer() {
+	private AST.Init parseInitializer() {
+		Token start = lexAn.peekToken();
+
 		if (lexAn.peekToken().symbol() == Token.Symbol.INTCONST) {
-			System.out.println("initializer -> INTCONST initializer_int_tail");
-			check(Token.Symbol.INTCONST);
-			parseInitializerIntTail();
+			Token intConst = check(Token.Symbol.INTCONST);
+			AST.AtomExpr first = loc(new AST.AtomExpr(AST.AtomExpr.Type.INTCONST, intConst.lexeme()), intConst, intConst);
+
+			Token.Symbol next = lexAn.peekToken().symbol();
+			// From the rule:initializer -> (INTCONST)? const ((how many)? value)
+			if (next == Token.Symbol.INTCONST || next == Token.Symbol.CHARCONST || next == Token.Symbol.STRINGCONST) {
+				AST.AtomExpr second = parseConst();
+				AST.Init init = new AST.Init(first, second);
+				return loc(init, start, lastToken);
+			} else {
+				// From the rule:initializer -> (INTCONST)? const ((how many)? value),we just implicitly add 1
+				AST.AtomExpr implicitOne = loc(new AST.AtomExpr(AST.AtomExpr.Type.INTCONST, "1"), start, start);
+				AST.Init init = new AST.Init(implicitOne, first);
+				return loc(init, start, lastToken);
+			}
 		} else {
-			System.out.println("initializer -> const");
-			parseConst();
+			AST.AtomExpr c = parseConst();
+			AST.AtomExpr implicitOne = loc(new AST.AtomExpr(AST.AtomExpr.Type.INTCONST, "1"), start, start);
+			AST.Init init = new AST.Init(implicitOne, c);
+			return loc(init, start, lastToken);
 		}
 	}
 
-	private void parseInitializerIntTail() {
-		Token.Symbol s = lexAn.peekToken().symbol();
-		if (s == Token.Symbol.INTCONST || s == Token.Symbol.CHARCONST || s == Token.Symbol.STRINGCONST) {
-			System.out.println("initializer_int_tail -> const");
-			parseConst();
-		} else {
-			System.out.println("initializer_int_tail -> empty");
-		}
-	}
+	//const -> INTCONST | CHARCONST | STRINGCONST
 
-	private void parseConst() {
-		Token.Symbol s = lexAn.peekToken().symbol();
+	private AST.AtomExpr parseConst() {
+		Token t = lexAn.peekToken();
+		Token.Symbol s = t.symbol();
+
 		if (s == Token.Symbol.INTCONST || s == Token.Symbol.CHARCONST || s == Token.Symbol.STRINGCONST) {
-			System.out.println("const -> " + s);
 			check(s);
+			AST.AtomExpr.Type type = switch (s) {
+				case INTCONST -> AST.AtomExpr.Type.INTCONST;
+				case CHARCONST -> AST.AtomExpr.Type.CHRCONST;
+				case STRINGCONST -> AST.AtomExpr.Type.STRCONST;
+				default -> throw new Report.InternalError();
+			};
+			AST.AtomExpr expr = new AST.AtomExpr(type, t.lexeme());
+			return loc(expr, t, t);
 		} else {
-			throw new Report.Error(lexAn.peekToken(), "Expected a constant.");
+			throw new Report.Error(t, "Expected a constant.");
 		}
 	}
 
@@ -500,7 +462,8 @@ public class SynAn implements AutoCloseable {
 				Report.warning("Unused arguments in the command line.");
 
 			try (SynAn synAn = new SynAn(cmdLineArgs[0])) {
-				synAn.parse();
+				HashMap<AST.Node, Report.Locatable> attrLocMap = new HashMap<>();
+				synAn.parse(attrLocMap);
 			}
 
 			// Upajmo, da kdaj pridemo to te tocke.
