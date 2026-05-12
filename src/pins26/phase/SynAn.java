@@ -438,7 +438,13 @@ public class SynAn implements AutoCloseable {
 				case STRINGCONST -> AST.AtomExpr.Type.STRCONST;
 				default -> throw new Report.InternalError();
 			};
-			AST.AtomExpr expr = new AST.AtomExpr(type, t.lexeme());
+			String value = switch (s) {
+				case CHARCONST -> "'" + t.lexeme() + "'";
+				case STRINGCONST -> "\"" + t.lexeme() + "\"";
+				default -> t.lexeme();
+			};
+
+			AST.AtomExpr expr = new AST.AtomExpr(type, value);
 			return loc(expr, t, t);
 		} else {
 			throw new Report.Error(t, "Expected a constant.");
