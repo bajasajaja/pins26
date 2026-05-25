@@ -214,6 +214,8 @@ public class Memory {
 
 			private int localVarOffset = 0;
 
+			private int minLocalVarOffset = 0;
+
 			private List<Mem.RelAccess> debugPars = null;
 			private List<Mem.RelAccess> debugVars = null;
 
@@ -222,6 +224,7 @@ public class Memory {
 				int oldDepth = depth;
 				//AST.FunDef oldFun = current;
 				int oldVarOffset = localVarOffset;
+				int oldMinLocalVarOffset = minLocalVarOffset;
 				current = funDef;
 				List<Mem.RelAccess> oldDebugPars = debugPars;
 				List<Mem.RelAccess> oldDebugVars = debugVars;
@@ -247,10 +250,11 @@ public class Memory {
 				int parsSize = parsOffset + 4;
 
 				localVarOffset = -8;
+				minLocalVarOffset = -8;
 
 				funDef.stmts.accept(this,arg);
 
-				int varSize = Math.abs(localVarOffset);
+				int varSize = Math.abs(minLocalVarOffset);
 
 				Mem.Frame frame = new Mem.Frame(
 						funDef.name,
@@ -267,6 +271,7 @@ public class Memory {
 				//localVarOffset = oldVarOffset;
 				depth = oldDepth;
 				localVarOffset = oldVarOffset;
+				minLocalVarOffset = oldMinLocalVarOffset;
 				debugPars = oldDebugPars;
 				debugVars = oldDebugVars;
 				return null;
@@ -305,6 +310,9 @@ public class Memory {
 					attrAST.attrVarAccess.put(varDef, access);
 				} else {
 					localVarOffset -= size;
+					if (localVarOffset < minLocalVarOffset) {
+						minLocalVarOffset = localVarOffset;
+					}
 					Mem.RelAccess access = new Mem.RelAccess(
 							localVarOffset,
 							depth,
