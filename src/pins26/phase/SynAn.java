@@ -400,18 +400,16 @@ public class SynAn implements AutoCloseable {
 	private AST.Init parseInitializer() {
 		Token start = lexAn.peekToken();
 
-		if (lexAn.peekToken().symbol() == Token.Symbol.INTCONST) {
+		if (start.symbol() == Token.Symbol.INTCONST) {
 			Token intConst = check(Token.Symbol.INTCONST);
 			AST.AtomExpr first = loc(new AST.AtomExpr(AST.AtomExpr.Type.INTCONST, intConst.lexeme()), intConst, intConst);
 
-			Token.Symbol next = lexAn.peekToken().symbol();
-			// From the rule:initializer -> (INTCONST)? const ((how many)? value)
-			if (next == Token.Symbol.INTCONST || next == Token.Symbol.CHARCONST || next == Token.Symbol.STRINGCONST) {
-				AST.AtomExpr second = parseConst();
+			if (lexAn.peekToken().symbol() == Token.Symbol.MUL) {
+				check(Token.Symbol.MUL);
+				AST.AtomExpr second = parseConst(); // Read the value after the '*'
 				AST.Init init = new AST.Init(first, second);
 				return loc(init, start, lastToken);
 			} else {
-				// From the rule:initializer -> (INTCONST)? const ((how many)? value),we just implicitly add 1
 				AST.AtomExpr implicitOne = loc(new AST.AtomExpr(AST.AtomExpr.Type.INTCONST, "1"), start, start);
 				AST.Init init = new AST.Init(implicitOne, first);
 				return loc(init, start, lastToken);
@@ -423,7 +421,6 @@ public class SynAn implements AutoCloseable {
 			return loc(init, start, lastToken);
 		}
 	}
-
 	//const -> INTCONST | CHARCONST | STRINGCONST
 
 	private AST.AtomExpr parseConst() {

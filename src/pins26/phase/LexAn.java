@@ -33,8 +33,8 @@ public class LexAn implements AutoCloseable {
 		KEYWORDS.put("!",Token.Symbol.NOT);
 		KEYWORDS.put("==",Token.Symbol.EQU);
 		KEYWORDS.put("!=",Token.Symbol.NEQ);
-		KEYWORDS.put("<", Token.Symbol.GTH);
-		KEYWORDS.put(">", Token.Symbol.LTH);
+		KEYWORDS.put("<", Token.Symbol.LTH);
+		KEYWORDS.put(">", Token.Symbol.GTH);
 		KEYWORDS.put("<=", Token.Symbol.LEQ);
 		KEYWORDS.put(">=", Token.Symbol.GEQ);
 		KEYWORDS.put("+",Token.Symbol.ADD);

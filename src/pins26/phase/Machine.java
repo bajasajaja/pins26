@@ -6,7 +6,7 @@ import pins26.common.*;
 
 /**
  * Skladovni stroj.
- * 
+ *
  * Naslovi 'sistemskih' funkcij:
  * <ol>
  * <li>{@code -1}: {@code fun exit(exitcode)}</li>
@@ -24,9 +24,9 @@ public class Machine {
 	public Machine() {
 		throw new Report.InternalError();
 	}
-
+	//when i run this,nothing appears,but it should run all the functions and show how the functions work
 	/** Ali se opravi testni izpis ukazov. */
-	public static boolean debugInstrsList = false;
+	public static boolean debugInstrsList = true;
 
 	/** Ali se opravi testni izpis vrednost oznak. */
 	public static boolean debugLabelsList = false;
@@ -94,7 +94,7 @@ public class Machine {
 
 		/**
 		 * Shrani vrednost v pomnilnik.
-		 * 
+		 *
 		 * @param addr       Pomnilniski naslov.
 		 * @param value      Vrednost.
 		 * @param debugInstr Lokacija dela izvorne kode, ki zahteva shranjevanje.
@@ -113,7 +113,7 @@ public class Machine {
 
 		/**
 		 * Prebere vrednost iz pomnilnika.
-		 * 
+		 *
 		 * @param addr Pomnilniski naslov.
 		 * @return Vrednost.
 		 */
@@ -133,7 +133,7 @@ public class Machine {
 
 		/**
 		 * Prenos nove vrednosti na sklad.
-		 * 
+		 *
 		 * @param value      Vrednost.
 		 * @param debugInstr Lokacija dela izvorne kode, ki prenos nove vrednosti na
 		 *                   sklad.
@@ -145,7 +145,7 @@ public class Machine {
 
 		/**
 		 * Prevzem vrednost z vrha sklada.
-		 * 
+		 *
 		 * @return Vrednost.
 		 */
 		private int pop() {
@@ -158,7 +158,7 @@ public class Machine {
 
 		/**
 		 * Ustvari nov skladovni stroj za podan program in ta program izvede.
-		 * 
+		 *
 		 * @param codeSegment Seznam ukazov, ki predstavljajo kodo programa.
 		 * @param dataSegment Seznam ukazov, ki predstavljajo podatke programa.
 		 */
@@ -172,32 +172,34 @@ public class Machine {
 				System.out.println("\n\033[1mCODE LABELS:\033[0m");
 			for (final PDM.CodeInstr instr : codeSegment) {
 				switch (instr) {
-				case PDM.LABEL i -> {
-					labelToAddr.put(i.name, memPtr);
-					addrToLabel.put(memPtr, i.name);
-					if (debugLabelsList)
-						System.out.printf("LABEL %s = %d\n", i.name, memPtr);
-					memPtr -= 1;
-				}
-				case PDM.INIT i -> program.put(memPtr, i);
-				case PDM.LOAD i -> program.put(memPtr, i);
-				case PDM.SAVE i -> program.put(memPtr, i);
-				case PDM.POPN i -> program.put(memPtr, i);
-				case PDM.PUSH i -> {
-					program.put(memPtr, i);
-					memPtr += 4;
-				}
-				case PDM.NAME i -> {
-					program.put(memPtr, i);
-					memPtr += 4;
-				}
-				case PDM.REGN i -> program.put(memPtr, i);
-				case PDM.OPER i -> program.put(memPtr, i);
-				case PDM.UJMP i -> program.put(memPtr, i);
-				case PDM.CJMP i -> program.put(memPtr, i);
-				case PDM.CALL i -> program.put(memPtr, i);
-				case PDM.RETN i -> program.put(memPtr, i);
-				default -> throw new Report.InternalError();
+					case PDM.LABEL i -> {
+						labelToAddr.put(i.name, memPtr);
+						addrToLabel.put(memPtr, i.name);
+						System.err.println("LABEL: " + i.name + " = " + memPtr);
+
+						if (debugLabelsList)
+							System.out.printf("LABEL %s = %d\n", i.name, memPtr);
+						memPtr -= 1;
+					}
+					case PDM.INIT i -> program.put(memPtr, i);
+					case PDM.LOAD i -> program.put(memPtr, i);
+					case PDM.SAVE i -> program.put(memPtr, i);
+					case PDM.POPN i -> program.put(memPtr, i);
+					case PDM.PUSH i -> {
+						program.put(memPtr, i);
+						memPtr += 4;
+					}
+					case PDM.NAME i -> {
+						program.put(memPtr, i);
+						memPtr += 4;
+					}
+					case PDM.REGN i -> program.put(memPtr, i);
+					case PDM.OPER i -> program.put(memPtr, i);
+					case PDM.UJMP i -> program.put(memPtr, i);
+					case PDM.CJMP i -> program.put(memPtr, i);
+					case PDM.CALL i -> program.put(memPtr, i);
+					case PDM.RETN i -> program.put(memPtr, i);
+					default -> throw new Report.InternalError();
 				}
 				memPtr += 1;
 			}
@@ -207,20 +209,22 @@ public class Machine {
 				System.out.println("\n\033[1mDATA LABELS:\033[0m");
 			for (final PDM.DataInstr instr : dataSegment) {
 				switch (instr) {
-				case PDM.LABEL i -> {
-					labelToAddr.put(i.name, memPtr);
-					addrToLabel.put(memPtr, i.name);
-					if (debugLabelsList)
-						System.out.printf("LABEL %s = %d\n", i.name, memPtr);
-				}
-				case PDM.SIZE i -> {
-					memPtr += i.size;
-				}
-				case PDM.DATA i -> {
-					memSAVE(memPtr, i.intc, i);
-					memPtr += 4;
-				}
-				default -> throw new Report.InternalError();
+					case PDM.LABEL i -> {
+						labelToAddr.put(i.name, memPtr);
+						addrToLabel.put(memPtr, i.name);
+						if (debugLabelsList)
+							System.out.printf("LABEL %s = %d\n", i.name, memPtr);
+					}
+					case PDM.SIZE i -> {
+						memPtr += i.size;
+					}
+					case PDM.DATA i -> {
+						System.err.println("DATA: storing " + i.intc + " at address " + memPtr);
+
+						memSAVE(memPtr, i.intc, i);
+						memPtr += 4;
+					}
+					default -> throw new Report.InternalError();
 				}
 			}
 			dataSegmentSize = memPtr - codeSegmentSize;
@@ -264,288 +268,297 @@ public class Machine {
 				}
 
 				switch (instr) {
-				case PDM.INIT i: {
-					int initAddr = pop();
-					int dstAddr = pop();
-					final int numInits = memLOAD(initAddr);
-					initAddr += 4;
-					for (int nInit = 0; nInit < numInits; nInit++) {
-						int num = memLOAD(initAddr);
+					case PDM.INIT i: {
+						int initAddr = pop();
+						int dstAddr = pop();
+						System.err.println("INIT: initAddr=" + initAddr + ", dstAddr=" + dstAddr);
+
+						final int numInits = memLOAD(initAddr);
+						System.err.println("INIT: numInits=" + numInits);
+
 						initAddr += 4;
-						int len = memLOAD(initAddr);
-						initAddr += 4;
-						for (int n = 0; n < num; n++) {
-							for (int l = 0; l < len; l++) {
-								memSAVE(dstAddr, memLOAD(initAddr + 4 * l), i);
-								dstAddr += 4;
+						for (int nInit = 0; nInit < numInits; nInit++) {
+							int num = memLOAD(initAddr);
+							initAddr += 4;
+							int len = memLOAD(initAddr);
+							initAddr += 4;
+							System.err.println("INIT: nInit=" + nInit + ", num=" + num + ", len=" + len);
+
+							for (int n = 0; n < num; n++) {
+								for (int l = 0; l < len; l++) {
+									int value = memLOAD(initAddr + 4 * l);
+									System.err.println("INIT: storing value=" + value + " at dstAddr=" + dstAddr);
+									memSAVE(dstAddr, memLOAD(initAddr + 4 * l), i);
+
+									dstAddr += 4;
+								}
 							}
+							initAddr += 4 * len;
 						}
-						initAddr += 4 * len;
-					}
-					PC += i.size();
-					break;
-				}
-				case PDM.LOAD i: {
-					int addr = pop();
-					int value = memLOAD(addr);
-					push(value, i);
-					PC += i.size();
-					break;
-				}
-				case PDM.SAVE i: {
-					final int addr = pop();
-					final int value = pop();
-					memSAVE(addr, value, i);
-					PC += i.size();
-					break;
-				}
-				case PDM.POPN i: {
-					int n = pop();
-					if (n < 0) {
-						while (n < 0) {
-							push(0, i);
-							n += 4;
-						}
-					} else {
-						while (n > 0) {
-							pop();
-							n -= 4;
-						}
-					}
-					PC += i.size();
-					break;
-				}
-				case PDM.PUSH i: {
-					push(i.intc, i);
-					PC += i.size();
-					break;
-				}
-				case PDM.NAME i: {
-					push(labelToAddr.get(i.name), i);
-					PC += i.size();
-					break;
-				}
-				case PDM.REGN i: {
-					final int value = switch (i.regn) {
-					case PC -> PC;
-					case FP -> FP;
-					case SP -> SP;
-					default -> throw new Report.InternalError();
-					};
-					push(value, i);
-					PC += i.size();
-					break;
-				}
-				case PDM.OPER i: {
-					switch (i.oper) {
-					case NOT:
-					case NEG: {
-						final int expr = pop();
-						final int result = switch (i.oper) {
-						case NOT -> (expr == 0) ? 1 : 0;
-						case NEG -> -expr;
-						default -> throw new Report.InternalError();
-						};
-						push(result, i);
+						PC += i.size();
 						break;
 					}
-					case OR:
-					case AND:
-					case EQU:
-					case NEQ:
-					case GTH:
-					case LTH:
-					case GEQ:
-					case LEQ:
-					case ADD:
-					case SUB:
-					case MUL:
-					case DIV:
-					case MOD: {
-						final int snd = pop();
-						final int fst = pop();
-						int result = switch (i.oper) {
-						case OR -> (fst != 0) || (snd != 0) ? 1 : 0;
-						case AND -> (fst != 0) && (snd != 0) ? 1 : 0;
-						case EQU -> fst == snd ? 1 : 0;
-						case NEQ -> fst != snd ? 1 : 0;
-						case GTH -> fst > snd ? 1 : 0;
-						case LTH -> fst < snd ? 1 : 0;
-						case GEQ -> fst >= snd ? 1 : 0;
-						case LEQ -> fst <= snd ? 1 : 0;
-						case ADD -> fst + snd;
-						case SUB -> fst - snd;
-						case MUL -> fst * snd;
-						case DIV -> fst / snd;
-						case MOD -> fst % snd;
-						default -> throw new Report.InternalError();
+					case PDM.LOAD i: {
+						int addr = pop();
+						int value = memLOAD(addr);
+						push(value, i);
+						PC += i.size();
+						break;
+					}
+					case PDM.SAVE i: {
+						final int addr = pop();
+						final int value = pop();
+						memSAVE(addr, value, i);
+						PC += i.size();
+						break;
+					}
+					case PDM.POPN i: {
+						int n = pop();
+						if (n < 0) {
+							while (n < 0) {
+								push(0, i);
+								n += 4;
+							}
+						} else {
+							while (n > 0) {
+								pop();
+								n -= 4;
+							}
+						}
+						PC += i.size();
+						break;
+					}
+					case PDM.PUSH i: {
+						push(i.intc, i);
+						PC += i.size();
+						break;
+					}
+					case PDM.NAME i: {
+						push(labelToAddr.get(i.name), i);
+						PC += i.size();
+						break;
+					}
+					case PDM.REGN i: {
+						final int value = switch (i.regn) {
+							case PC -> PC;
+							case FP -> FP;
+							case SP -> SP;
+							default -> throw new Report.InternalError();
 						};
+						push(value, i);
+						PC += i.size();
+						break;
+					}
+					case PDM.OPER i: {
+						switch (i.oper) {
+							case NOT:
+							case NEG: {
+								final int expr = pop();
+								final int result = switch (i.oper) {
+									case NOT -> (expr == 0) ? 1 : 0;
+									case NEG -> -expr;
+									default -> throw new Report.InternalError();
+								};
+								push(result, i);
+								break;
+							}
+							case OR:
+							case AND:
+							case EQU:
+							case NEQ:
+							case GTH:
+							case LTH:
+							case GEQ:
+							case LEQ:
+							case ADD:
+							case SUB:
+							case MUL:
+							case DIV:
+							case MOD: {
+								final int snd = pop();
+								final int fst = pop();
+								int result = switch (i.oper) {
+									case OR -> (fst != 0) || (snd != 0) ? 1 : 0;
+									case AND -> (fst != 0) && (snd != 0) ? 1 : 0;
+									case EQU -> fst == snd ? 1 : 0;
+									case NEQ -> fst != snd ? 1 : 0;
+									case GTH -> fst > snd ? 1 : 0;
+									case LTH -> fst < snd ? 1 : 0;
+									case GEQ -> fst >= snd ? 1 : 0;
+									case LEQ -> fst <= snd ? 1 : 0;
+									case ADD -> fst + snd;
+									case SUB -> fst - snd;
+									case MUL -> fst * snd;
+									case DIV -> fst / snd;
+									case MOD -> fst % snd;
+									default -> throw new Report.InternalError();
+								};
+								push(result, i);
+								break;
+							}
+							default:
+								throw new Report.InternalError();
+						}
+						PC += i.size();
+						break;
+					}
+					case PDM.UJMP i: {
+						PC = pop();
+						break;
+					}
+					case PDM.CJMP i: {
+						final int elsePC = pop();
+						final int thenPC = pop();
+						final int cond = pop();
+						PC = (cond != 0) ? thenPC : elsePC;
+						break;
+					}
+					case PDM.CALL i: {
+						final int newPC = pop();
+						if (newPC < 0) {
+							switch (newPC) {
+								case -1: { // exit(exitcode)
+									pop(); // SL
+									final int exitCode = pop();
+									pop();
+									pop();
+									System.out.printf("EXIT CODE (SP=%d): %d\n", SP, exitCode);
+									break loop;
+								}
+								case -2: { // getint()
+									pop(); // SL
+									final int intValue = scanner.nextInt();
+									push(intValue, null); // result
+									PC += i.size();
+									break;
+								}
+								case -3: { // putint(intvalue)
+									pop(); // SL
+									final int intValue = pop();
+									System.out.printf("%d", intValue);
+									push(1, null); // result
+									PC += i.size();
+									break;
+								}
+								case -4: { // getstr(straddr)
+									pop(); // SL
+									int strAddr = pop();
+									final String strValue = scanner.nextLine();
+									for (int c = 0; c < strValue.length(); c++) {
+										memSAVE(strAddr, strValue.charAt(c), null);
+										strAddr += 4;
+									}
+									memSAVE(strAddr, 0, null);
+									push(1, null); // result
+									PC += i.size();
+									break;
+								}
+								case -5: { // putstr(straddr)
+									pop(); // SL
+									int strAddr = pop();
+									while (true) {
+										int c = memLOAD(strAddr);
+										if (c == 0)
+											break;
+										System.out.printf("%c", c);
+										strAddr += 4;
+									}
+									push(1, null); // result
+									PC += i.size();
+									break;
+								}
+								case -6: { // new(size)
+									pop(); // SL
+									final int size = pop();
+									final int addr = HP;
+									for (int a = addr; a < addr + size; a++)
+										memory.put(a, (byte) 0);
+									HP += size;
+									push(addr, null); // result
+									PC += i.size();
+									break;
+								}
+								case -7: { // del(addr)
+									pop(); // SL
+									pop(); // addr
+									push(1, null); // result
+									PC += i.size();
+									break;
+								}
+								default:
+									throw new Report.InternalError();
+							}
+						} else {
+							if (debugStack) {
+								debugDscs.put(SP, "... SL");
+								debugDscs.put(SP - 4,
+										"... FP *** " + (i.debugFrame == null ? "" : i.debugFrame.name) + " ***");
+								debugDscs.put(SP - 8, "... RA ");
+								if (i.debugFrame != null) {
+									if (i.debugFrame.debugPars != null)
+										for (final Mem.RelAccess relAccess : i.debugFrame.debugPars)
+											if (relAccess.debugName != null)
+												debugDscs.put(SP + relAccess.offset, "... par: " + relAccess.debugName);
+									if (i.debugFrame.debugVars != null)
+										for (final Mem.RelAccess relAccess : i.debugFrame.debugVars)
+											if (relAccess.debugName != null) {
+												if (relAccess.size == 4)
+													debugDscs.put(SP + relAccess.offset, "... var: " + relAccess.debugName);
+												else {
+													for (int s = 0; s < relAccess.size; s += 4)
+														debugDscs.put(SP + relAccess.offset + s,
+																"... var: " + relAccess.debugName + "[" + (s / 4) + "]");
+												}
+											}
+								}
+							}
+							push(FP, i);
+							push(PC + i.size(), i);
+							FP = SP + 8;
+							PC = newPC;
+						}
+						break;
+					}
+					case PDM.RETN i: {
+						if (debugStack) {
+							debugDscs.put(FP, null);
+							debugDscs.put(FP - 4, null);
+							debugDscs.put(FP - 8, null);
+							if (i.debugFrame != null) {
+								if (i.debugFrame.debugPars != null)
+									for (final Mem.RelAccess relAccess : i.debugFrame.debugPars)
+										if (relAccess.debugName != null)
+											debugDscs.put(FP + relAccess.offset, null);
+								if (i.debugFrame.debugVars != null)
+									for (final Mem.RelAccess relAccess : i.debugFrame.debugVars)
+										if (relAccess.debugName != null) {
+											if (relAccess.size == 4)
+												debugDscs.put(FP + relAccess.offset, null);
+											else {
+												for (int s = 0; s < relAccess.size; s += 4)
+													debugDscs.put(FP + relAccess.offset + s, null);
+											}
+										}
+							}
+						}
+						int parsSize = pop();
+						final int result = pop();
+						PC = memLOAD(FP - 8);
+						while (SP != FP) {
+							pop();
+						}
+						// SP = FP;
+						FP = memLOAD(FP - 4);
+						parsSize += 4;
+						while (parsSize > 0) {
+							pop();
+							parsSize -= 4;
+						}
 						push(result, i);
 						break;
 					}
 					default:
 						throw new Report.InternalError();
-					}
-					PC += i.size();
-					break;
-				}
-				case PDM.UJMP i: {
-					PC = pop();
-					break;
-				}
-				case PDM.CJMP i: {
-					final int elsePC = pop();
-					final int thenPC = pop();
-					final int cond = pop();
-					PC = (cond != 0) ? thenPC : elsePC;
-					break;
-				}
-				case PDM.CALL i: {
-					final int newPC = pop();
-					if (newPC < 0) {
-						switch (newPC) {
-						case -1: { // exit(exitcode)
-							pop(); // SL
-							final int exitCode = pop();
-							pop();
-							pop();
-							System.out.printf("EXIT CODE (SP=%d): %d\n", SP, exitCode);
-							break loop;
-						}
-						case -2: { // getint()
-							pop(); // SL
-							final int intValue = scanner.nextInt();
-							push(intValue, null); // result
-							PC += i.size();
-							break;
-						}
-						case -3: { // putint(intvalue)
-							pop(); // SL
-							final int intValue = pop();
-							System.out.printf("%d", intValue);
-							push(1, null); // result
-							PC += i.size();
-							break;
-						}
-						case -4: { // getstr(straddr)
-							pop(); // SL
-							int strAddr = pop();
-							final String strValue = scanner.nextLine();
-							for (int c = 0; c < strValue.length(); c++) {
-								memSAVE(strAddr, strValue.charAt(c), null);
-								strAddr += 4;
-							}
-							memSAVE(strAddr, 0, null);
-							push(1, null); // result
-							PC += i.size();
-							break;
-						}
-						case -5: { // putstr(straddr)
-							pop(); // SL
-							int strAddr = pop();
-							while (true) {
-								int c = memLOAD(strAddr);
-								if (c == 0)
-									break;
-								System.out.printf("%c", c);
-								strAddr += 4;
-							}
-							push(1, null); // result
-							PC += i.size();
-							break;
-						}
-						case -6: { // new(size)
-							pop(); // SL
-							final int size = pop();
-							final int addr = HP;
-							for (int a = addr; a < addr + size; a++)
-								memory.put(a, (byte) 0);
-							HP += size;
-							push(addr, null); // result
-							PC += i.size();
-							break;
-						}
-						case -7: { // del(addr)
-							pop(); // SL
-							pop(); // addr
-							push(1, null); // result
-							PC += i.size();
-							break;
-						}
-						default:
-							throw new Report.InternalError();
-						}
-					} else {
-						if (debugStack) {
-							debugDscs.put(SP, "... SL");
-							debugDscs.put(SP - 4,
-									"... FP *** " + (i.debugFrame == null ? "" : i.debugFrame.name) + " ***");
-							debugDscs.put(SP - 8, "... RA ");
-							if (i.debugFrame != null) {
-								if (i.debugFrame.debugPars != null)
-									for (final Mem.RelAccess relAccess : i.debugFrame.debugPars)
-										if (relAccess.debugName != null)
-											debugDscs.put(SP + relAccess.offset, "... par: " + relAccess.debugName);
-								if (i.debugFrame.debugVars != null)
-									for (final Mem.RelAccess relAccess : i.debugFrame.debugVars)
-										if (relAccess.debugName != null) {
-											if (relAccess.size == 4)
-												debugDscs.put(SP + relAccess.offset, "... var: " + relAccess.debugName);
-											else {
-												for (int s = 0; s < relAccess.size; s += 4)
-													debugDscs.put(SP + relAccess.offset + s,
-															"... var: " + relAccess.debugName + "[" + (s / 4) + "]");
-											}
-										}
-							}
-						}
-						push(FP, i);
-						push(PC + i.size(), i);
-						FP = SP + 8;
-						PC = newPC;
-					}
-					break;
-				}
-				case PDM.RETN i: {
-					if (debugStack) {
-						debugDscs.put(FP, null);
-						debugDscs.put(FP - 4, null);
-						debugDscs.put(FP - 8, null);
-						if (i.debugFrame != null) {
-							if (i.debugFrame.debugPars != null)
-								for (final Mem.RelAccess relAccess : i.debugFrame.debugPars)
-									if (relAccess.debugName != null)
-										debugDscs.put(FP + relAccess.offset, null);
-							if (i.debugFrame.debugVars != null)
-								for (final Mem.RelAccess relAccess : i.debugFrame.debugVars)
-									if (relAccess.debugName != null) {
-										if (relAccess.size == 4)
-											debugDscs.put(FP + relAccess.offset, null);
-										else {
-											for (int s = 0; s < relAccess.size; s += 4)
-												debugDscs.put(FP + relAccess.offset + s, null);
-										}
-									}
-						}
-					}
-					int parsSize = pop();
-					final int result = pop();
-					PC = memLOAD(FP - 8);
-					while (SP != FP) {
-						pop();
-					}
-					// SP = FP;
-					FP = memLOAD(FP - 4);
-					parsSize += 4;
-					while (parsSize > 0) {
-						pop();
-						parsSize -= 4;
-					}
-					push(result, i);
-					break;
-				}
-				default:
-					throw new Report.InternalError();
 				}
 			}
 
@@ -558,7 +571,7 @@ public class Machine {
 
 	/**
 	 * Zagon izracuna pomnilniske predstavitve kot samostojnega programa.
-	 * 
+	 *
 	 * @param cmdLineArgs Argumenti v ukazni vrstici.
 	 */
 	public static void main(final String[] cmdLineArgs) {

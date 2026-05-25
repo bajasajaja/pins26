@@ -16,7 +16,7 @@ public class SemAn {
 
 	/**
 	 * Abstraktno sintaksno drevo z dodanimi atributi semanticne analize.
-	 * 
+	 *
 	 * Dodani atributi:
 	 * <ol>
 	 * <li>({@link Abstr}) lokacija kode, ki pripada posameznemu vozliscu;</li>
@@ -35,14 +35,14 @@ public class SemAn {
 		/**
 		 * Ustvari novo abstraktno sintaksno drevo z dodanim atributi semanticne
 		 * analize.
-		 * 
+		 *
 		 * @param attrAST  Abstraktno sintaksno drevo z dodanimi atributi abstraktne
 		 *                 sintakse.
 		 * @param attrDef  Atribut: definicija uporabljenega imena.
 		 * @param attrLVal Atribut: ali je dani izraz levi izraz.
 		 */
 		public AttrAST(final Abstr.AttrAST attrAST, final Map<AST.NameExpr, AST.Def> attrDef,
-				final Map<AST.Expr, Boolean> attrLVal) {
+		               final Map<AST.Expr, Boolean> attrLVal) {
 			super(attrAST);
 			this.attrDef = attrDef;
 			this.attrLVal = attrLVal;
@@ -51,7 +51,7 @@ public class SemAn {
 		/**
 		 * Ustvari novo abstraktno sintaksno drevo z dodanimi atributi semanticne
 		 * analize.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi semanticne
 		 *                analize.
 		 */
@@ -66,29 +66,29 @@ public class SemAn {
 			final StringBuffer head = new StringBuffer();
 			head.append(super.head(node, false));
 			switch (node) {
-			case final AST.NameExpr nameExpr:
-				final AST.Def def = attrDef.get(nameExpr);
-				if (def == null)
+				case final AST.NameExpr nameExpr:
+					final AST.Def def = attrDef.get(nameExpr);
+					if (def == null)
+						break;
+					final Report.Locatable loc = attrLoc.get(def);
+					if (loc == null)
+						break;
+					head.append((" ") + (highlighted ? "\033[31m" : "") + "def@" + loc.location().toString()
+							+ (highlighted ? "\033[30m" : ""));
 					break;
-				final Report.Locatable loc = attrLoc.get(def);
-				if (loc == null)
+				default:
 					break;
-				head.append((" ") + (highlighted ? "\033[31m" : "") + "def@" + loc.location().toString()
-						+ (highlighted ? "\033[30m" : ""));
-				break;
-			default:
-				break;
 			}
 			switch (node) {
-			case final AST.Expr expr:
-				final Boolean lval = attrLVal.get(expr);
-				if (lval == null)
+				case final AST.Expr expr:
+					final Boolean lval = attrLVal.get(expr);
+					if (lval == null)
+						break;
+					if (lval)
+						head.append((" ") + (highlighted ? "\033[31m" : "") + "lval" + (highlighted ? "\033[30m" : ""));
 					break;
-				if (lval)
-					head.append((" ") + (highlighted ? "\033[31m" : "") + "lval" + (highlighted ? "\033[30m" : ""));
-				break;
-			default:
-				break;
+				default:
+					break;
 			}
 			return head.toString();
 		}
@@ -97,7 +97,7 @@ public class SemAn {
 
 	/**
 	 * Opravi semanticno analizo.
-	 * 
+	 *
 	 * @param abstrAttrAST Abstraktno sintaksno drevo z dodanimi atributi abstraktne
 	 *                     sintakse.
 	 * @return Abstraktno sintaksno drevo z dodanimi atributi semanticne analize.
@@ -121,7 +121,7 @@ public class SemAn {
 
 		/**
 		 * Ustvari nov razresevalnik imen.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi semanticne
 		 *                analize.
 		 */
@@ -131,7 +131,7 @@ public class SemAn {
 
 		/**
 		 * Sprozi razresevanje imen.
-		 * 
+		 *
 		 * @return Abstraktno sintaksno drevo z dodanimi atributi semanticne analize
 		 *         ({@link AttrAST#attrDef} izracunan in nespremenljiv).
 		 */
@@ -148,7 +148,7 @@ public class SemAn {
 
 			/**
 			 * Definicija v trenutnem dosega na dani staticni globini.
-			 * 
+			 *
 			 * @param depth Staticna globina definicije.
 			 * @param def   Definicija.
 			 */
@@ -198,7 +198,7 @@ public class SemAn {
 
 			/**
 			 * Vstavi novo definicijo imena v trenutni doseg.
-			 * 
+			 *
 			 * @param def Definicija imena.
 			 * @return {@code true}, ce je vstavitev mozna (pred to vstavitvijo v tem dosegu
 			 *         se ni definicije tega imena), ali {@code false}, ce vstavitev ni
@@ -223,7 +223,7 @@ public class SemAn {
 
 			/**
 			 * Vrne definicijo imena.
-			 * 
+			 *
 			 * @param name Ime.
 			 * @return Definicija imena ali {@code null}, ce ime ni definirano v tem in
 			 *         obsegajocih dosegih.
@@ -246,7 +246,7 @@ public class SemAn {
 
 			/**
 			 * Dva preleta abstraktnega sintaksnega drevesa med razresevanjem imen.
-			 * 
+			 *
 			 * Med prvim preletom se obdelajo definicije funkcij in spremenljivk (ne pa tudi
 			 * telesa funkcij), med drugim preletom se obdela vse ostalo (tudi telesa
 			 * funkcij). Oba preleta se prepletata in se razcepita le pri obdelavi zaporedja
@@ -263,27 +263,27 @@ public class SemAn {
 			public Object visit(final AST.Nodes<? extends AST.Node> nodes, final Pass pass) {
 				for (final AST.Node node : nodes) {
 					switch (node) {
-					case final AST.FunDef funDef:
-						funDef.accept(this, Pass.Defs);
-						break;
-					case final AST.VarDef varDef:
-						varDef.accept(this, Pass.Defs);
-						break;
-					default:
-						break;
+						case final AST.FunDef funDef:
+							funDef.accept(this, Pass.Defs);
+							break;
+						case final AST.VarDef varDef:
+							varDef.accept(this, Pass.Defs);
+							break;
+						default:
+							break;
 					}
 				}
 				for (final AST.Node node : nodes) {
 					switch (node) {
-					case final AST.FunDef funDef:
-						funDef.accept(this, Pass.Rest);
-						break;
-					case final AST.VarDef varDef:
-						varDef.accept(this, Pass.Rest);
-						break;
-					default:
-						node.accept(this, null);
-						break;
+						case final AST.FunDef funDef:
+							funDef.accept(this, Pass.Rest);
+							break;
+						case final AST.VarDef varDef:
+							varDef.accept(this, Pass.Rest);
+							break;
+						default:
+							node.accept(this, null);
+							break;
 					}
 				}
 				return null;
@@ -292,21 +292,21 @@ public class SemAn {
 			@Override
 			public Object visit(final AST.FunDef funDef, final Pass pass) {
 				switch (pass) {
-				case Defs: {
-					if (!symbolTable.ins(funDef))
-						throw new Report.Error(attrAST.attrLoc.get(funDef),
-								"Illegal definition of function '" + funDef.name + "'.");
-					break;
-				}
-				case Rest: {
-					symbolTable.newScope();
-					funDef.pars.accept(this, null);
-					funDef.stmts.accept(this, null);
-					symbolTable.oldScope();
-					break;
-				}
-				default:
-					throw new Report.InternalError();
+					case Defs: {
+						if (!symbolTable.ins(funDef))
+							throw new Report.Error(attrAST.attrLoc.get(funDef),
+									"Illegal definition of function '" + funDef.name + "'.");
+						break;
+					}
+					case Rest: {
+						symbolTable.newScope();
+						funDef.pars.accept(this, null);
+						funDef.stmts.accept(this, null);
+						symbolTable.oldScope();
+						break;
+					}
+					default:
+						throw new Report.InternalError();
 				}
 				return null;
 			}
@@ -322,18 +322,18 @@ public class SemAn {
 			@Override
 			public Object visit(final AST.VarDef varDef, final Pass pass) {
 				switch (pass) {
-				case Defs: {
-					if (!symbolTable.ins(varDef))
-						throw new Report.Error(attrAST.attrLoc.get(varDef),
-								"Illegal definition of variable '" + varDef.name + "'.");
-					varDef.inits.accept(this, null);
-					break;
-				}
-				case Rest: {
-					break;
-				}
-				default:
-					throw new Report.InternalError();
+					case Defs: {
+						if (!symbolTable.ins(varDef))
+							throw new Report.Error(attrAST.attrLoc.get(varDef),
+									"Illegal definition of variable '" + varDef.name + "'.");
+						varDef.inits.accept(this, null);
+						break;
+					}
+					case Rest: {
+						break;
+					}
+					default:
+						throw new Report.InternalError();
 				}
 				return null;
 			}
@@ -380,7 +380,7 @@ public class SemAn {
 
 		/**
 		 * Ustvari nov razresevalnik imen.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi semanticne
 		 *                analize
 		 */
@@ -390,7 +390,7 @@ public class SemAn {
 
 		/**
 		 * Sprozi razresevanje imen.
-		 * 
+		 *
 		 * @return Abstraktno sintaksno drevo z dodanimi atributi semanticne analize.
 		 */
 		public AttrAST resolve() {
@@ -409,7 +409,7 @@ public class SemAn {
 
 			/**
 			 * Dva preleta abstraktnega sintaksnega drevesa med razresevanjem imen.
-			 * 
+			 *
 			 * Med prvim preletom se obdelajo definicije funkcij in spremenljivk (ne pa tudi
 			 * telesa funkcij), med drugim preletom se obdela vse ostalo (tudi telesa
 			 * funkcij). Oba preleta se prepletata in se razcepita le pri obdelavi zaporedja
@@ -430,18 +430,18 @@ public class SemAn {
 					AST.Stmt lastStmt = funDef.stmts.getAll().getLast();
 					loop: while (true) {
 						switch (lastStmt) {
-						case AST.ExprStmt exprStmt:
-							break loop;
-						case AST.LetStmt letStmt:
-							if (letStmt.stmts.size() != 0) {
-								lastStmt = letStmt.stmts.getAll().getLast();
-							} else
+							case AST.ExprStmt exprStmt:
+								break loop;
+							case AST.LetStmt letStmt:
+								if (letStmt.stmts.size() != 0) {
+									lastStmt = letStmt.stmts.getAll().getLast();
+								} else
+									throw new Report.Error(attrAST.attrLoc.get(funDef),
+											"Function '" + funDef.name + "' does not return any value.");
+								break;
+							default:
 								throw new Report.Error(attrAST.attrLoc.get(funDef),
 										"Function '" + funDef.name + "' does not return any value.");
-							break;
-						default:
-							throw new Report.Error(attrAST.attrLoc.get(funDef),
-									"Function '" + funDef.name + "' does not return any value.");
 						}
 					}
 				}
@@ -451,13 +451,13 @@ public class SemAn {
 			@Override
 			public Object visit(final AST.VarExpr varExpr, final Pass pass) {
 				switch (attrAST.attrDef.get(varExpr)) {
-				case final AST.VarDef varDef:
-					break;
-				case final AST.ParDef parDef:
-					break;
-				default:
-					throw new Report.Error(attrAST.attrLoc.get(varExpr),
-							"'" + varExpr.name + "' is not a variable or a parameter.");
+					case final AST.VarDef varDef:
+						break;
+					case final AST.ParDef parDef:
+						break;
+					default:
+						throw new Report.Error(attrAST.attrLoc.get(varExpr),
+								"'" + varExpr.name + "' is not a variable or a parameter.");
 				}
 				return null;
 			}
@@ -465,14 +465,14 @@ public class SemAn {
 			@Override
 			public Object visit(final AST.CallExpr callExpr, final Pass pass) {
 				switch (attrAST.attrDef.get(callExpr)) {
-				case final AST.FunDef funDef: {
-					if (funDef.pars.size() != callExpr.args.size())
-						throw new Report.Error(attrAST.attrLoc.get(callExpr),
-								"Illegal number of arguments in a call of function '" + callExpr.name + "'.");
-					break;
-				}
-				default:
-					throw new Report.Error(attrAST.attrLoc.get(callExpr), "'" + callExpr.name + "' is not a function.");
+					case final AST.FunDef funDef: {
+						if (funDef.pars.size() != callExpr.args.size())
+							throw new Report.Error(attrAST.attrLoc.get(callExpr),
+									"Illegal number of arguments in a call of function '" + callExpr.name + "'.");
+						break;
+					}
+					default:
+						throw new Report.Error(attrAST.attrLoc.get(callExpr), "'" + callExpr.name + "' is not a function.");
 				}
 				callExpr.args.accept(this, null);
 				return null;
@@ -492,7 +492,7 @@ public class SemAn {
 
 		/**
 		 * Ustvari nov razresevalnik levih vrednosti.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi semanticne
 		 *                analize.
 		 */
@@ -542,7 +542,7 @@ public class SemAn {
 
 	/**
 	 * Zagon semanticne analize kot samostojnega programa.
-	 * 
+	 *
 	 * @param cmdLineArgs Argumenti v ukazni vrstici.
 	 */
 	public static void main(final String[] cmdLineArgs) {

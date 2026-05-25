@@ -17,7 +17,7 @@ public class Memory {
 	/**
 	 * Abstraktno sintaksno drevo z dodanimi atributi izracuna pomnilniske
 	 * predstavitve.
-	 * 
+	 *
 	 * Atributi:
 	 * <ol>
 	 * <li>({@link Abstr}) lokacija kode, ki pripada posameznemu vozliscu;</li>
@@ -39,10 +39,13 @@ public class Memory {
 		/** Atribut: dostop do spremenljivke. */
 		public final Map<AST.VarDef, Mem.Access> attrVarAccess;
 
+
+
+
 		/**
 		 * Ustvari novo abstraktno sintaksno drevo z dodanimi atributi izracuna
 		 * pomnilniske predstavitve.
-		 * 
+		 *
 		 * @param attrAST       Abstraktno sintaksno drevo z dodanimi atributi
 		 *                      semanticne analize.
 		 * @param attrFrame     Attribut: klicni zapis funkcije.
@@ -50,7 +53,7 @@ public class Memory {
 		 * @param attrVarAccess Attribut: dostop do spremenljivke.
 		 */
 		public AttrAST(final SemAn.AttrAST attrAST, final Map<AST.FunDef, Mem.Frame> attrFrame,
-				final Map<AST.ParDef, Mem.RelAccess> attrParAccess, final Map<AST.VarDef, Mem.Access> attrVarAccess) {
+		               final Map<AST.ParDef, Mem.RelAccess> attrParAccess, final Map<AST.VarDef, Mem.Access> attrVarAccess) {
 			super(attrAST);
 			this.attrFrame = attrFrame;
 			this.attrParAccess = attrParAccess;
@@ -60,7 +63,7 @@ public class Memory {
 		/**
 		 * Ustvari novo abstraktno sintaksno drevo z dodanimi atributi izracuna
 		 * pomnilniske predstavitve.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi izracuna
 		 *                pomnilniske predstavitve.
 		 */
@@ -77,44 +80,44 @@ public class Memory {
 			head.append(super.head(node, false));
 			head.append(highlighted ? "\033[31m" : "");
 			switch (node) {
-			case final AST.FunDef funDef:
-				Mem.Frame frame = attrFrame.get(funDef);
-				head.append(" depth=" + frame.depth);
-				head.append(" parsSize=" + frame.parsSize);
-				head.append(" varsSize=" + frame.varsSize);
-				break;
-			case final AST.ParDef parDef: {
-				Mem.RelAccess relAccess = attrParAccess.get(parDef);
-				head.append(" offset=" + relAccess.offset);
-				head.append(" size=" + relAccess.size);
-				head.append(" depth=" + relAccess.depth);
-				if (relAccess.inits != null)
-					initsToString(relAccess.inits, head);
-				break;
-			}
-			case final AST.VarDef varDef: {
-				Mem.Access access = attrVarAccess.get(varDef);
-				if (access != null)
-					switch (access) {
-					case final Mem.AbsAccess absAccess:
-						head.append(" size=" + absAccess.size);
-						if (absAccess.inits != null)
-							initsToString(absAccess.inits, head);
-						break;
-					case final Mem.RelAccess relAccess:
-						head.append(" offset=" + relAccess.offset);
-						head.append(" size=" + relAccess.size);
-						head.append(" depth=" + relAccess.depth);
-						if (relAccess.inits != null)
-							initsToString(relAccess.inits, head);
-						break;
-					default:
-						throw new Report.InternalError();
-					}
-				break;
-			}
-			default:
-				break;
+				case final AST.FunDef funDef:
+					Mem.Frame frame = attrFrame.get(funDef);
+					head.append(" depth=" + frame.depth);
+					head.append(" parsSize=" + frame.parsSize);
+					head.append(" varsSize=" + frame.varsSize);
+					break;
+				case final AST.ParDef parDef: {
+					Mem.RelAccess relAccess = attrParAccess.get(parDef);
+					head.append(" offset=" + relAccess.offset);
+					head.append(" size=" + relAccess.size);
+					head.append(" depth=" + relAccess.depth);
+					if (relAccess.inits != null)
+						initsToString(relAccess.inits, head);
+					break;
+				}
+				case final AST.VarDef varDef: {
+					Mem.Access access = attrVarAccess.get(varDef);
+					if (access != null)
+						switch (access) {
+							case final Mem.AbsAccess absAccess:
+								head.append(" size=" + absAccess.size);
+								if (absAccess.inits != null)
+									initsToString(absAccess.inits, head);
+								break;
+							case final Mem.RelAccess relAccess:
+								head.append(" offset=" + relAccess.offset);
+								head.append(" size=" + relAccess.size);
+								head.append(" depth=" + relAccess.depth);
+								if (relAccess.inits != null)
+									initsToString(relAccess.inits, head);
+								break;
+							default:
+								throw new Report.InternalError();
+						}
+					break;
+				}
+				default:
+					break;
 			}
 			head.append(highlighted ? "\033[30m" : "");
 			return head.toString();
@@ -122,7 +125,7 @@ public class Memory {
 
 		/**
 		 * Pripravi znakovno predstavitev zacetne vrednosti spremenmljivke.
-		 * 
+		 *
 		 * @param inits Zacetna vrednost spremenljivke.
 		 * @param head  Znakovno predstavitev zacetne vrednosti spremenmljivke.
 		 */
@@ -152,7 +155,7 @@ public class Memory {
 
 	/**
 	 * Opravi izracun pomnilniske predstavitve.
-	 * 
+	 *
 	 * @param semanAttrAST Abstraktno sintaksno drevo z dodanimi atributi izracuna
 	 *                     pomnilniske predstavitve.
 	 * @return Abstraktno sintaksno drevo z atributi po fazi pomnilniske
@@ -178,7 +181,7 @@ public class Memory {
 
 		/**
 		 * Ustvari nov organizator pomnilniske predstavitve.
-		 * 
+		 *
 		 * @param attrAST Abstraktno sintaksno drevo z dodanimi atributi izracuna
 		 *                pomnilniske predstavitve.
 		 */
@@ -188,7 +191,7 @@ public class Memory {
 
 		/**
 		 * Sprozi nov izracun pomnilniske predstavitve.
-		 * 
+		 *
 		 * @return Abstraktno sintaksno drevo z dodanimi atributi izracuna pomnilniske
 		 *         predstavitve.
 		 */
@@ -217,30 +220,31 @@ public class Memory {
 			@Override
 			public Object visit(AST.FunDef funDef, Object arg) {
 				int oldDepth = depth;
-				AST.FunDef oldFun = current;
+				//AST.FunDef oldFun = current;
 				int oldVarOffset = localVarOffset;
 				current = funDef;
-				debugPars = new ArrayList<Mem.RelAccess>();
-				debugVars = new ArrayList<Mem.RelAccess>();
+				List<Mem.RelAccess> oldDebugPars = debugPars;
+				List<Mem.RelAccess> oldDebugVars = debugVars;
+
+				debugPars = new ArrayList<>();
+				debugVars = new ArrayList<>();
 
 				depth++;
-				int parsOffset = 0;
-				parsOffset += 4;
+				int parsOffset = 4;
 
 				for (AST.ParDef parDef: funDef.pars){
-						Mem.RelAccess access = new Mem.RelAccess(
-								parsOffset,
-								depth,
-								4,
-								null,
-								parDef.name
-						);
-						attrAST.attrParAccess.put(parDef,access);
-						debugPars.add(access);
-						parsOffset += 4;
+					Mem.RelAccess access = new Mem.RelAccess(
+							parsOffset,
+							depth,
+							4,
+							null,
+							parDef.name
+					);
+					attrAST.attrParAccess.put(parDef,access);
+					debugPars.add(access);
+					parsOffset += 4;
 				}
-				parsOffset += 4;
-				int parsSize = parsOffset;
+				int parsSize = parsOffset + 4;
 
 				localVarOffset = -8;
 
@@ -250,7 +254,7 @@ public class Memory {
 
 				Mem.Frame frame = new Mem.Frame(
 						funDef.name,
-						oldDepth,
+						depth,
 						parsSize,
 						varSize,
 						debugPars,
@@ -258,18 +262,22 @@ public class Memory {
 				);
 				attrAST.attrFrame.put(funDef,frame);
 
+				//depth = oldDepth;
+				//current = oldFun;
+				//localVarOffset = oldVarOffset;
 				depth = oldDepth;
-				current = oldFun;
 				localVarOffset = oldVarOffset;
-
+				debugPars = oldDebugPars;
+				debugVars = oldDebugVars;
 				return null;
 			}
 
 			@Override
 			public Object visit(final AST.VarDef varDef, Object arg) {
-                Vector<Integer> inits = calculateInits(varDef);
-                int size = 4;
-                if(inits != null && inits.size() > 1) {
+				Vector<Integer> inits = calculateInits(varDef);
+				int size = 4;
+				System.err.println("Memory: Allocating variable '" + varDef.name + "' at offset " + localVarOffset + " (before adjustment)");
+				if(inits != null && inits.size() > 1) {
 					int total = 0;
 					int index = 1;
 					for (int i = 0; i < inits.getFirst(); i++) {
@@ -280,7 +288,13 @@ public class Memory {
 						index += value;
 					}
 					size = total * 4;
-				} else size = 4;
+				}
+				//else {
+				//	localVarOffset -= size;
+				//	Mem.RelAccess access = new Mem.RelAccess(localVarOffset, depth, size, inits, varDef.name);
+				//	attrAST.attrVarAccess.put(varDef, access);
+				//	if (debugVars != null) debugVars.add(access);
+				//}
 
 				if(depth == 0){
 					Mem.AbsAccess access = new Mem.AbsAccess(
@@ -300,17 +314,17 @@ public class Memory {
 					);
 					attrAST.attrVarAccess.put(varDef, access);
 					if(debugVars != null) debugVars.add(access);
+					System.err.println("Allocated " + varDef.name + " at offset " + localVarOffset);
 				}
+				//System.err.println("Memory: Variable '" + varDef.name + "' allocated at offset " + localVarOffset);
 				return null;
 			}
 			@Override
-			public Object visit(final AST.LetStmt letStmt, Object arg) {
-				depth++;
-				//int oldLocalVarOffser = localVarOffset;
-				letStmt.defs.accept(this,arg);
-				letStmt.stmts.accept(this,arg);
-				//localVarOffset = oldLocalVarOffser;
-				depth--;
+			public Object visit(final AST.LetStmt letStmt, final Object arg) {
+				int savedOffset = localVarOffset;
+				letStmt.defs.accept(this, arg);
+				letStmt.stmts.accept(this, arg);
+				localVarOffset = savedOffset;
 				return null;
 			}
 
@@ -325,14 +339,14 @@ public class Memory {
 					Vector<Integer> value = null;
 					switch (init.value.type){
 						case INTCONST: value = new Vector<Integer>();
-									   value.add(decodeIntConst(init.value,attrAST.attrLoc.get(init.value)));
-									   break;
+							value.add(decodeIntConst(init.value,attrAST.attrLoc.get(init.value)));
+							break;
 						case CHRCONST: value = new Vector<Integer>();
-									   value.add(decodeChrConst(init.value,attrAST.attrLoc.get(init.value)));
-									   break;
+							value.add(decodeChrConst(init.value,attrAST.attrLoc.get(init.value)));
+							break;
 						case STRCONST: value = decodeStrConst(init.value,attrAST.attrLoc.get(init.value));
-									   value.add(0);
-									   break;
+							value.add(0);
+							break;
 
 					}
 					result.add(count);
@@ -347,7 +361,7 @@ public class Memory {
 
 	/**
 	 * Izracuna vrednost celostevilske konstante.
-	 * 
+	 *
 	 * @param intAtomExpr Celostevilska konstanta.
 	 * @param loc         Lokacija celostevilske konstante.
 	 * @return Vrednost celostevilske konstante.
@@ -362,33 +376,33 @@ public class Memory {
 
 	/**
 	 * Izracuna vrednost znakovna konstante.
-	 * 
+	 *
 	 * @param chrAtomExpr Znakovna konstanta.
 	 * @param loc         Lokacija znakovne konstante.
 	 * @return Vrednost znakovne konstante.
 	 */
 	public static Integer decodeChrConst(final AST.AtomExpr chrAtomExpr, final Report.Locatable loc) {
 		switch (chrAtomExpr.value.charAt(1)) {
-		case '\\':
-			switch (chrAtomExpr.value.charAt(2)) {
-			case 'n':
-				return 10;
-			case '\'':
-				return ((int) '\'');
 			case '\\':
-				return ((int) '\\');
+				switch (chrAtomExpr.value.charAt(2)) {
+					case 'n':
+						return 10;
+					case '\'':
+						return ((int) '\'');
+					case '\\':
+						return ((int) '\\');
+					default:
+						return 16 * (((int) chrAtomExpr.value.charAt(2)) - ((int) '0'))
+								+ (((int) chrAtomExpr.value.charAt(3)) - ((int) '0'));
+				}
 			default:
-				return 16 * (((int) chrAtomExpr.value.charAt(2)) - ((int) '0'))
-						+ (((int) chrAtomExpr.value.charAt(3)) - ((int) '0'));
-			}
-		default:
-			return ((int) chrAtomExpr.value.charAt(1));
+				return ((int) chrAtomExpr.value.charAt(1));
 		}
 	}
 
 	/**
 	 * Izracuna vrednost konstantnega niza.
-	 * 
+	 *
 	 * @param strAtomExpr Konstantni niz.
 	 * @param loc         Lokacija konstantnega niza.
 	 * @return Vrendnost konstantega niza.
@@ -397,30 +411,30 @@ public class Memory {
 		final Vector<Integer> value = new Vector<Integer>();
 		for (int c = 1; c < strAtomExpr.value.length() - 1; c++) {
 			switch (strAtomExpr.value.charAt(c)) {
-			case '\\':
-				switch (strAtomExpr.value.charAt(c + 1)) {
-				case 'n':
-					value.addLast(10);
-					c += 1;
-					break;
-				case '\"':
-					value.addLast((int) '\"');
-					c += 1;
-					break;
 				case '\\':
-					value.addLast((int) '\\');
-					c += 1;
+					switch (strAtomExpr.value.charAt(c + 1)) {
+						case 'n':
+							value.addLast(10);
+							c += 1;
+							break;
+						case '\"':
+							value.addLast((int) '\"');
+							c += 1;
+							break;
+						case '\\':
+							value.addLast((int) '\\');
+							c += 1;
+							break;
+						default:
+							value.addLast(16 * (((int) strAtomExpr.value.charAt(c + 1)) - ((int) '0'))
+									+ (((int) strAtomExpr.value.charAt(c + 2)) - ((int) '0')));
+							c += 2;
+							break;
+					}
 					break;
 				default:
-					value.addLast(16 * (((int) strAtomExpr.value.charAt(c + 1)) - ((int) '0'))
-							+ (((int) strAtomExpr.value.charAt(c + 2)) - ((int) '0')));
-					c += 2;
+					value.addLast((int) strAtomExpr.value.charAt(c));
 					break;
-				}
-				break;
-			default:
-				value.addLast((int) strAtomExpr.value.charAt(c));
-				break;
 			}
 		}
 		return value;
@@ -430,7 +444,7 @@ public class Memory {
 
 	/**
 	 * Zagon izracuna pomnilniske predstavitve kot samostojnega programa.
-	 * 
+	 *
 	 * @param cmdLineArgs Argumenti v ukazni vrstici.
 	 */
 	public static void main(final String[] cmdLineArgs) {
