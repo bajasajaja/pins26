@@ -281,7 +281,6 @@ public class Memory {
 			public Object visit(final AST.VarDef varDef, Object arg) {
 				Vector<Integer> inits = calculateInits(varDef);
 				int size = 4;
-				System.err.println("Memory: Allocating variable '" + varDef.name + "' at offset " + localVarOffset + " (before adjustment)");
 				if(inits != null && inits.size() > 1) {
 					int total = 0;
 					int index = 1;
@@ -322,9 +321,7 @@ public class Memory {
 					);
 					attrAST.attrVarAccess.put(varDef, access);
 					if(debugVars != null) debugVars.add(access);
-					System.err.println("Allocated " + varDef.name + " at offset " + localVarOffset);
 				}
-				//System.err.println("Memory: Variable '" + varDef.name + "' allocated at offset " + localVarOffset);
 				return null;
 			}
 			@Override

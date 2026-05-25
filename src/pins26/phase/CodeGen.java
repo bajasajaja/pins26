@@ -449,23 +449,16 @@ public class CodeGen {
 				AST.Def def = attrAST.attrDef.get(varExpr);
 				Boolean holdsLeftVal = attrAST.attrLVal.get(varExpr);
 
-				System.err.println("VarExpr: name=" + varExpr.name + ", holdsLeftVal=" + holdsLeftVal + ", def=" + def.getClass().getSimpleName());
-
 				Mem.Access access = null;
 				if (def instanceof AST.VarDef varDef) {
 					access = attrAST.attrVarAccess.get(varDef);
-					System.err.println("VarExpr: Looking up VarDef '" + varDef.name + "', got access with offset " +
-							(access instanceof Mem.RelAccess ? ((Mem.RelAccess)access).offset : "absolute"));
 				} else if (def instanceof AST.ParDef parDef) {
 					access = attrAST.attrParAccess.get(parDef);
-					System.err.println("VarExpr: Looking up ParDef '" + parDef.name + "', got offset " +
-							((Mem.RelAccess)access).offset);
 				}
 
 				if (access instanceof Mem.AbsAccess absAcc) {
 					code.add(new PDM.NAME(absAcc.name, attrAST.attrLoc.get(varExpr)));
 				} else if (access instanceof Mem.RelAccess relAcc) {
-					System.err.println("Generating code for " + varExpr.name + " at offset " + relAcc.offset);
 					code.add(new PDM.REGN(PDM.REGN.Reg.FP, attrAST.attrLoc.get(varExpr)));
 					for (int i = 0; i < frame.depth - relAcc.depth; i++) {
 						code.add(new PDM.LOAD(attrAST.attrLoc.get(varExpr)));
@@ -524,10 +517,8 @@ public class CodeGen {
 			public List<PDM.CodeInstr> visit(final AST.CallExpr callExpr, final Mem.Frame frame) {
 				List<PDM.CodeInstr> code = new ArrayList<>();
 				AST.Def def = attrAST.attrDef.get(callExpr);
-				System.err.println("CallExpr: name=" + callExpr.name + ", def=" + (def != null ? def.getClass().getSimpleName() : "null"));
 
 				List<AST.Expr> argsList = callExpr.args.getAll();
-				System.err.println("  args count=" + argsList.size());
 				// Evaluate and push arguments from right to left
 				for (int i = argsList.size() - 1; i >= 0; i--) {
 					argsList.get(i).accept(this, frame);

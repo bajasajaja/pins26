@@ -26,7 +26,7 @@ public class Machine {
 	}
 	//when i run this,nothing appears,but it should run all the functions and show how the functions work
 	/** Ali se opravi testni izpis ukazov. */
-	public static boolean debugInstrsList = true;
+	public static boolean debugInstrsList = false;
 
 	/** Ali se opravi testni izpis vrednost oznak. */
 	public static boolean debugLabelsList = false;
@@ -175,7 +175,6 @@ public class Machine {
 					case PDM.LABEL i -> {
 						labelToAddr.put(i.name, memPtr);
 						addrToLabel.put(memPtr, i.name);
-						System.err.println("LABEL: " + i.name + " = " + memPtr);
 
 						if (debugLabelsList)
 							System.out.printf("LABEL %s = %d\n", i.name, memPtr);
@@ -219,8 +218,6 @@ public class Machine {
 						memPtr += i.size;
 					}
 					case PDM.DATA i -> {
-						System.err.println("DATA: storing " + i.intc + " at address " + memPtr);
-
 						memSAVE(memPtr, i.intc, i);
 						memPtr += 4;
 					}
@@ -271,10 +268,8 @@ public class Machine {
 					case PDM.INIT i: {
 						int initAddr = pop();
 						int dstAddr = pop();
-						System.err.println("INIT: initAddr=" + initAddr + ", dstAddr=" + dstAddr);
 
 						final int numInits = memLOAD(initAddr);
-						System.err.println("INIT: numInits=" + numInits);
 
 						initAddr += 4;
 						for (int nInit = 0; nInit < numInits; nInit++) {
@@ -282,12 +277,9 @@ public class Machine {
 							initAddr += 4;
 							int len = memLOAD(initAddr);
 							initAddr += 4;
-							System.err.println("INIT: nInit=" + nInit + ", num=" + num + ", len=" + len);
 
 							for (int n = 0; n < num; n++) {
 								for (int l = 0; l < len; l++) {
-									int value = memLOAD(initAddr + 4 * l);
-									System.err.println("INIT: storing value=" + value + " at dstAddr=" + dstAddr);
 									memSAVE(dstAddr, memLOAD(initAddr + 4 * l), i);
 
 									dstAddr += 4;
